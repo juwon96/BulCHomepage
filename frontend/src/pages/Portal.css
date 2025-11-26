@@ -1,0 +1,188 @@
+/* ========================================
+   PORTAL PAGE - 메인 포털 페이지
+======================================== */
+
+.portal-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========================================
+   INTRO SECTION
+======================================== */
+
+.portal-intro {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(40, 40, 40, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 1s ease;
+}
+
+.portal-intro.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.portal-intro-text {
+  text-align: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 1s ease;
+}
+
+.portal-intro-text.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.portal-intro-line {
+  font-family: var(--font-main);
+  font-size: 42px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 12px 0;
+  letter-spacing: 0.05em;
+}
+
+/* ========================================
+   NAVIGATION (로고 + 로그인)
+======================================== */
+
+.portal-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 48px;
+  background: rgba(40, 40, 40, 1);
+}
+
+.portal-logo {
+  font-family: var(--font-main);
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--white);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.portal-logo:hover {
+  color: var(--accent);
+}
+
+.portal-user-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.portal-user-icon:hover {
+  color: var(--accent);
+}
+
+/* ========================================
+   CATEGORY SECTION
+======================================== */
+
+.portal-category {
+  flex: 1;
+  padding: 80px 48px;
+  background: linear-gradient(to top, var(--accent) 0%, rgba(40, 40, 40, 1) 100%);
+  display: flex;
+  align-items: center;
+}
+
+.portal-container {
+  max-width: var(--container-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 300px));
+  gap: 24px;
+  justify-content: center;
+}
+
+/* ========================================
+   CATEGORY CARDS
+======================================== */
+
+.portal-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 40px;
+  background: var(--white);
+  border: 2px solid var(--accent);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.portal-card:hover {
+  background: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(196, 50, 10, 0.3);
+}
+
+.portal-card-title {
+  font-family: var(--font-main);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.portal-card:hover .portal-card-title {
+  color: var(--text-primary);
+}
+
+.portal-card-desc {
+  font-family: var(--font-main);
+  font-size: 15px;
+  color: var(--accent);
+}
+
+.portal-card:hover .portal-card-desc {
+  color: var(--text-primary);
+}
+
+/* ========================================
+   Mobile Responsive
+======================================== */
+
+@media (max-width: 768px) {
+  .portal-intro-line {
+    font-size: 28px;
+  }
+
+  .portal-category {
+    padding: 60px 24px;
+  }
+
+  .portal-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .portal-card {
+    padding: 40px 24px;
+  }
+
+  .portal-card-title {
+    font-size: 24px;
+  }
+}

@@ -1,0 +1,116 @@
+/* ========================================
+   LOGIN PAGE
+======================================== */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 24px 80px;
+  background: var(--off-white);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 400px;
+  background: var(--white);
+  padding: 48px;
+  box-shadow: var(--shadow-md);
+}
+
+.login-title {
+  font-family: var(--font-main);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.form-group input {
+  padding: 14px 16px;
+  font-family: var(--font-main);
+  font-size: 15px;
+  border: 1px solid var(--mid-gray);
+  background: var(--white);
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.login-submit {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--text-primary);
+  color: white;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-submit:hover {
+  background: var(--accent);
+}
+
+.login-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.login-links a {
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-links a:hover {
+  color: var(--accent);
+}
+
+/* ========================================
+   Mobile Responsive
+======================================== */
+
+@media (max-width: 600px) {
+  .login-container {
+    padding: 32px 24px;
+  }
+
+  .login-title {
+    font-size: 24px;
+  }
+}
