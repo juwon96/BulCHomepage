@@ -1,0 +1,21 @@
+# Build
+build/
+target/
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Gradle
+.gradle/
+
+# Logs
+*.log
+logs/

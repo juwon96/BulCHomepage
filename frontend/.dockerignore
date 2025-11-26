@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build
+build/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+
+# Misc
+.DS_Store
+README.md
