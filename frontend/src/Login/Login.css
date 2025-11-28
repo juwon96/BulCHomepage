@@ -5,7 +5,7 @@
   width: 100%;
   max-width: 400px;
   padding: 40px;
-  margin-top: calc(50vh - 200px);
+  margin-top: 100px;
 }
 
 .login-title {
@@ -158,6 +158,6 @@
 @media (max-width: 768px) {
   .login-container {
     padding: 20px;
-    margin-top: calc(50vh - 180px);
+    margin-top: 100px;
   }
 }

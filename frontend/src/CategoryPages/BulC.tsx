@@ -1,32 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import './index.css';
-import LoginPage from './Login/Login';
-import MeteorPage from './CategoryPages/Meteor';
-import BulCPage from './CategoryPages/BulC';
-import VRPage from './CategoryPages/VR';
-import MorePage from './CategoryPages/More';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './CategoryPages.css';
+import HeroSection from './HeroSection';
 
-// 메인 페이지 컴포넌트
-const MainPage: React.FC = () => {
-  const [phase, setPhase] = useState<'slogan' | 'complete'>('slogan');
-  const [menuOpen, setMenuOpen] = useState(false);
+const BulCPage: React.FC = () => {
   const navigate = useNavigate();
+  const [activeMenu, setActiveMenu] = useState('simulator');
   const menuRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const completeTimer = setTimeout(() => {
-      setPhase('complete');
-    }, 2000);
-
-    return () => {
-      clearTimeout(completeTimer);
-    };
-  }, []);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // 메뉴 외부 클릭 감지
-  useEffect(() => {
+  React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
@@ -42,16 +26,10 @@ const MainPage: React.FC = () => {
     };
   }, [menuOpen]);
 
-  const handleLogoClick = () => {
-    navigate('/');
-    window.location.reload();
-  };
-
   return (
     <div className="app">
-      {/* 헤더 (처음부터 표시) */}
       <header className="header visible">
-        <div className="header-logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
+        <div className="header-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <img src="/logo_transparent.png" alt="METEOR" className="header-logo-img" />
           <span className="header-logo-text">METEOR</span>
         </div>
@@ -85,57 +63,64 @@ const MainPage: React.FC = () => {
         </div>
       </header>
 
-      {/* 문구 (2-4초: 페이드인 후 페이드아웃) */}
-      <div className={`slogan-overlay ${phase === 'slogan' ? 'visible' : ''}`}>
-        <div className="slogan-content">
-          <p><span className="text-accent">화재</span>를 예측하고</p>
-          <p><span className="text-accent">생명</span>을 구합니다</p>
+      {/* 서브 메뉴 */}
+      <nav className="sub-nav">
+        <div className="sub-nav-left">
+          <div
+            className={`sub-nav-item ${activeMenu === 'simulator' ? 'active' : ''}`}
+            onClick={() => setActiveMenu('simulator')}
+          >
+            체험 시뮬레이터
+          </div>
+          <div
+            className={`sub-nav-item ${activeMenu === 'education' ? 'active' : ''}`}
+            onClick={() => setActiveMenu('education')}
+          >
+            교육 과정
+          </div>
+          <div
+            className={`sub-nav-item ${activeMenu === 'diagnosis' ? 'active' : ''}`}
+            onClick={() => setActiveMenu('diagnosis')}
+          >
+            안전 진단
+          </div>
+          <div
+            className={`sub-nav-item ${activeMenu === 'verification' ? 'active' : ''}`}
+            onClick={() => setActiveMenu('verification')}
+          >
+            효과 검증
+          </div>
         </div>
-      </div>
+        <div className="sub-nav-right">
+          <div className="sub-nav-item contact">
+            체험 문의하기
+          </div>
+        </div>
+      </nav>
 
-      {/* 메인 콘텐츠 영역 */}
-      <main className="main-content">
-        <div className={`category-container ${phase === 'complete' ? 'visible' : ''}`}>
-          <div className="category-card" onClick={() => navigate('/meteor')}>
-            <span className="category-name">Meteor<br/>Simulation</span>
+      <main className="main-content sub-page">
+        {activeMenu === 'simulator' && <HeroSection />}
+        {activeMenu === 'education' && (
+          <div className="page-container">
+            <h1 className="page-title">BulC</h1>
+            <p className="page-subtitle">교육 과정</p>
           </div>
-          <div className="category-card" onClick={() => navigate('/bulc')}>
-            <span className="category-name">BulC</span>
+        )}
+        {activeMenu === 'diagnosis' && (
+          <div className="page-container">
+            <h1 className="page-title">BulC</h1>
+            <p className="page-subtitle">안전 진단</p>
           </div>
-          <div className="category-card" onClick={() => navigate('/vr')}>
-            <span className="category-name">VR</span>
+        )}
+        {activeMenu === 'verification' && (
+          <div className="page-container">
+            <h1 className="page-title">BulC</h1>
+            <p className="page-subtitle">효과 검증</p>
           </div>
-          <div className="category-card" onClick={() => navigate('/more')}>
-            <span className="category-name">More</span>
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );
 };
 
-// App 라우터
-const App: React.FC = () => {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<MainPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/meteor" element={<MeteorPage />} />
-        <Route path="/bulc" element={<BulCPage />} />
-        <Route path="/vr" element={<VRPage />} />
-        <Route path="/more" element={<MorePage />} />
-      </Routes>
-    </BrowserRouter>
-  );
-};
-
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+export default BulCPage;

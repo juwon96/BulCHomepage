@@ -1,23 +1,19 @@
 -- ===============================
--- BulC Homepage Database Initialization
--- PostgreSQL 16
--- ===============================
-
--- 확장 기능 설치 (필요 시)
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- ===============================
 -- 1) 회원 계정 기본 정보: users
 -- ===============================
 CREATE TABLE users (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     email           VARCHAR(255) NOT NULL UNIQUE,
-    password_hash   VARCHAR(255) NULL,
+    password_hash   VARCHAR(255) NULL, -- 소셜 로그인만 쓰는 계정은 NULL 가능
     email_verified  BOOLEAN NOT NULL DEFAULT FALSE,
+
     status          VARCHAR(50) NOT NULL DEFAULT 'active',
-    sign_up_channel VARCHAR(50) NULL,
-    locale          VARCHAR(10) NULL,
-    timezone        VARCHAR(50) NULL,
+    -- 예: 'active', 'suspended', 'deleted'
+
+    sign_up_channel VARCHAR(50) NULL,   -- 'web', 'admin', 'partner' 등
+    locale          VARCHAR(10) NULL,   -- 'ko', 'en', 'ja' 등
+    timezone        VARCHAR(50) NULL,   -- 'Asia/Seoul' 등
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -28,22 +24,29 @@ CREATE TABLE users (
 CREATE TABLE user_profiles (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id         BIGINT NOT NULL,
+    
     name            VARCHAR(100) NULL,
     phone_number    VARCHAR(50) NULL,
+    
     company_name    VARCHAR(255) NULL,
     department      VARCHAR(255) NULL,
     job_title       VARCHAR(255) NULL,
-    company_size    VARCHAR(50) NULL,
+    company_size    VARCHAR(50) NULL,   -- '1-10', '11-50', '50-200' 등
+
     address_line1   VARCHAR(255) NULL,
     address_line2   VARCHAR(255) NULL,
     city            VARCHAR(100) NULL,
     state           VARCHAR(100) NULL,
     postal_code     VARCHAR(20) NULL,
     country         VARCHAR(100) NULL,
-    extra_meta      JSON NULL,
+
+    extra_meta      JSON NULL,          -- 특이 정보(내부 메모 등) 확장용
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_user_profiles_user FOREIGN KEY (user_id) REFERENCES users(id)
+
+    CONSTRAINT fk_user_profiles_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ===============================
@@ -52,15 +55,24 @@ CREATE TABLE user_profiles (
 CREATE TABLE user_auth_providers (
     id                  BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id             BIGINT NOT NULL,
+
     provider            VARCHAR(50) NOT NULL,
+    -- 예: 'google', 'kakao', 'naver', 'github'
+
     provider_user_id    VARCHAR(255) NOT NULL,
+    -- 해당 provider에서의 고유 ID
+
     access_token        TEXT NULL,
     refresh_token       TEXT NULL,
     token_expires_at    TIMESTAMP NULL,
-    raw_profile         JSON NULL,
+
+    raw_profile         JSON NULL,  -- provider에서 받은 원본 프로필
+
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_auth_user FOREIGN KEY (user_id) REFERENCES users(id),
+
+    CONSTRAINT fk_auth_user
+        FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT uq_provider_user UNIQUE (provider, provider_user_id)
 );
 
@@ -69,8 +81,8 @@ CREATE TABLE user_auth_providers (
 -- ===============================
 CREATE TABLE user_roles (
     id          BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    code        VARCHAR(50) NOT NULL UNIQUE,
-    name        VARCHAR(100) NOT NULL,
+    code        VARCHAR(50) NOT NULL UNIQUE,  -- 'admin', 'user', 'partner' 등
+    name        VARCHAR(100) NOT NULL,        -- '관리자', '일반 사용자'
     description TEXT NULL
 );
 
@@ -81,9 +93,13 @@ CREATE TABLE user_role_mappings (
     id          BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id     BIGINT NOT NULL,
     role_id     BIGINT NOT NULL,
+
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_role_user FOREIGN KEY (user_id) REFERENCES users(id),
-    CONSTRAINT fk_role_role FOREIGN KEY (role_id) REFERENCES user_roles(id),
+
+    CONSTRAINT fk_role_user
+        FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_role_role
+        FOREIGN KEY (role_id) REFERENCES user_roles(id),
     CONSTRAINT uq_user_role UNIQUE (user_id, role_id)
 );
 
@@ -93,12 +109,16 @@ CREATE TABLE user_role_mappings (
 CREATE TABLE user_status_logs (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id         BIGINT NOT NULL,
+    
     from_status     VARCHAR(50) NULL,
-    to_status       VARCHAR(50) NOT NULL,
-    reason          TEXT NULL,
-    changed_by      BIGINT NULL,
+    to_status       VARCHAR(50) NOT NULL,    -- 'active', 'suspended', 'deleted' 등
+    reason          TEXT NULL,               -- 내부 메모
+    changed_by      BIGINT NULL,             -- 관리자가 바꿨다면 관리자 user_id
+    
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_statuslog_user FOREIGN KEY (user_id) REFERENCES users(id)
+
+    CONSTRAINT fk_statuslog_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ===============================
@@ -106,10 +126,11 @@ CREATE TABLE user_status_logs (
 -- ===============================
 CREATE TABLE products (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    code            VARCHAR(50) NOT NULL UNIQUE,
+    code            VARCHAR(50) NOT NULL UNIQUE,    -- 'OPENFIRE', 'BULC' 등
     name            VARCHAR(255) NOT NULL,
     description     TEXT NULL,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -120,15 +141,21 @@ CREATE TABLE products (
 CREATE TABLE price_plans (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     product_id      BIGINT NOT NULL,
-    name            VARCHAR(255) NOT NULL,
-    billing_type    VARCHAR(50) NOT NULL,
-    billing_period  VARCHAR(50) NULL,
+
+    name            VARCHAR(255) NOT NULL,         -- '월간 기본', '연간 프로' 등
+    billing_type    VARCHAR(50) NOT NULL,          -- 'one_time', 'recurring'
+    billing_period  VARCHAR(50) NULL,              -- 'month', 'year', null(1회 결제)
+
     amount          DECIMAL(18,2) NOT NULL,
     currency        VARCHAR(10) NOT NULL DEFAULT 'KRW',
+
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_price_product FOREIGN KEY (product_id) REFERENCES products(id)
+
+    CONSTRAINT fk_price_product
+        FOREIGN KEY (product_id) REFERENCES products(id)
 );
 
 -- ===============================
@@ -138,15 +165,23 @@ CREATE TABLE subscriptions (
     id                   BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id              BIGINT NOT NULL,
     price_plan_id        BIGINT NOT NULL,
+
     status               VARCHAR(50) NOT NULL,
+    -- 'active', 'canceled', 'expired', 'past_due' 등
+
     current_period_start TIMESTAMP NOT NULL,
     current_period_end   TIMESTAMP NOT NULL,
+
     cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
     canceled_at          TIMESTAMP NULL,
+
     created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users(id),
-    CONSTRAINT fk_sub_plan FOREIGN KEY (price_plan_id) REFERENCES price_plans(id)
+
+    CONSTRAINT fk_sub_user
+        FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_sub_plan
+        FOREIGN KEY (price_plan_id) REFERENCES price_plans(id)
 );
 
 -- ===============================
@@ -155,15 +190,21 @@ CREATE TABLE subscriptions (
 CREATE TABLE orders (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id         BIGINT NOT NULL,
-    order_number    VARCHAR(100) NOT NULL UNIQUE,
-    status          VARCHAR(50) NOT NULL,
-    order_type      VARCHAR(50) NOT NULL,
+
+    order_number    VARCHAR(100) NOT NULL UNIQUE, -- 외부 노출용 주문번호
+    status          VARCHAR(50) NOT NULL,         -- 'pending', 'paid', 'canceled', 'failed' 등
+
+    order_type      VARCHAR(50) NOT NULL,         -- 'one_time', 'subscription_initial', 'subscription_renewal'
     total_amount    DECIMAL(18,2) NOT NULL,
     currency        VARCHAR(10) NOT NULL DEFAULT 'KRW',
-    note            TEXT NULL,
+
+    note            TEXT NULL,                   -- 내부 메모
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id)
+
+    CONSTRAINT fk_orders_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ===============================
@@ -173,53 +214,74 @@ CREATE TABLE order_items (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     order_id        BIGINT NOT NULL,
     product_id      BIGINT NOT NULL,
-    price_plan_id   BIGINT NULL,
+    price_plan_id   BIGINT NULL,   -- 1회성 상품이면 NULL 가능
+
     quantity        INT NOT NULL DEFAULT 1,
     unit_amount     DECIMAL(18,2) NOT NULL,
     total_amount    DECIMAL(18,2) NOT NULL,
-    metadata        JSON NULL,
+
+    metadata        JSON NULL,     -- 라이선스 수량, 좌석 수 등 확장
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_orderitems_order FOREIGN KEY (order_id) REFERENCES orders(id),
-    CONSTRAINT fk_orderitems_product FOREIGN KEY (product_id) REFERENCES products(id),
-    CONSTRAINT fk_orderitems_priceplan FOREIGN KEY (price_plan_id) REFERENCES price_plans(id)
+
+    CONSTRAINT fk_orderitems_order
+        FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT fk_orderitems_product
+        FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT fk_orderitems_priceplan
+        FOREIGN KEY (price_plan_id) REFERENCES price_plans(id)
 );
 
 -- ===============================
 -- 11) 결제: payments
 -- ===============================
 CREATE TABLE payments (
-    id                  BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    order_id            BIGINT NOT NULL,
-    user_id             BIGINT NOT NULL,
-    provider            VARCHAR(50) NOT NULL,
-    provider_payment_id VARCHAR(255) NOT NULL,
-    amount              DECIMAL(18,2) NOT NULL,
-    currency            VARCHAR(10) NOT NULL DEFAULT 'KRW',
-    status              VARCHAR(50) NOT NULL,
-    paid_at             TIMESTAMP NULL,
-    failure_reason      TEXT NULL,
-    raw_response        JSON NULL,
-    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_payments_order FOREIGN KEY (order_id) REFERENCES orders(id),
-    CONSTRAINT fk_payments_user FOREIGN KEY (user_id) REFERENCES users(id)
+    id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    order_id        BIGINT NOT NULL,
+    user_id         BIGINT NOT NULL,
+
+    provider        VARCHAR(50) NOT NULL,       -- 'toss', 'inicis', 'stripe' 등
+    provider_payment_id VARCHAR(255) NOT NULL,  -- PG측 결제 ID
+
+    amount          DECIMAL(18,2) NOT NULL,
+    currency        VARCHAR(10) NOT NULL DEFAULT 'KRW',
+
+    status          VARCHAR(50) NOT NULL,       -- 'pending', 'paid', 'failed', 'canceled', 'refunded'
+    paid_at         TIMESTAMP NULL,
+    failure_reason  TEXT NULL,
+
+    raw_response    JSON NULL,                  -- PG에서 받은 원본 응답
+
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_payments_order
+        FOREIGN KEY (order_id) REFERENCES orders(id),
+    CONSTRAINT fk_payments_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ===============================
 -- 12) 환불: refunds
 -- ===============================
 CREATE TABLE refunds (
-    id                 BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    payment_id         BIGINT NOT NULL,
-    refund_amount      DECIMAL(18,2) NOT NULL,
-    reason             TEXT NULL,
-    status             VARCHAR(50) NOT NULL,
-    provider_refund_id VARCHAR(255) NULL,
-    refunded_at        TIMESTAMP NULL,
-    raw_response       JSON NULL,
-    created_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_refunds_payment FOREIGN KEY (payment_id) REFERENCES payments(id)
+    id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    payment_id      BIGINT NOT NULL,
+
+    refund_amount   DECIMAL(18,2) NOT NULL,
+    reason          TEXT NULL,
+
+    status          VARCHAR(50) NOT NULL,       -- 'pending', 'completed', 'failed'
+    provider_refund_id VARCHAR(255) NULL,       -- PG 측 환불 ID
+    refunded_at     TIMESTAMP NULL,
+
+    raw_response    JSON NULL,                  -- PG 환불 응답 원본
+
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_refunds_payment
+        FOREIGN KEY (payment_id) REFERENCES payments(id)
 );
 
 -- ===============================
@@ -227,16 +289,29 @@ CREATE TABLE refunds (
 -- ===============================
 CREATE TABLE user_activity_logs (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    user_id         BIGINT NULL,
+    user_id         BIGINT NULL, 
+
     action          VARCHAR(100) NOT NULL,
+    -- 예: 'page_view', 'button_click', 'login', 'logout', 
+    --     'subscribe', 'payment_attempt', 'error', 등
+
     resource_path   VARCHAR(500) NULL,
-    http_method     VARCHAR(10) NULL,
+    -- 웹 URL 또는 API 경로 예: '/pricing', '/api/orders'
+
+    http_method     VARCHAR(10) NULL, 
+    -- GET, POST, PUT, DELETE 등
+
     ip_address      VARCHAR(50) NULL,
     user_agent      TEXT NULL,
     referrer        VARCHAR(500) NULL,
+
     metadata        JSON NULL,
+    -- 동작 관련 상세 정보 (버튼ID, 상품ID, 이전 URL, 에러 내용 등)
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_activity_user FOREIGN KEY (user_id) REFERENCES users(id)
+
+    CONSTRAINT fk_activity_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ===============================
@@ -244,35 +319,62 @@ CREATE TABLE user_activity_logs (
 -- ===============================
 CREATE TABLE admin_operation_logs (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    admin_user_id   BIGINT NOT NULL,
+    admin_user_id   BIGINT NOT NULL,      -- 관리자 계정 (users.id)
+    
     action          VARCHAR(100) NOT NULL,
+    -- 예: 'user_suspend', 'subscription_cancel', 
+    --     'order_cancel', 'payment_mark_failed', 'refund_create' 등
+
     target_type     VARCHAR(50) NOT NULL,
-    target_id       BIGINT NULL,
-    target_user_id  BIGINT NULL,
-    description     TEXT NULL,
+    -- 'user', 'subscription', 'order', 'payment', 'refund' 등
+
+    target_id       BIGINT NULL,          -- target_type에 따른 ID
+    target_user_id  BIGINT NULL,          -- 관련 유저가 있다면
+
+    description     TEXT NULL,            -- 상세 사유/내용
     ip_address      VARCHAR(50) NULL,
     user_agent      TEXT NULL,
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_adminlog_admin FOREIGN KEY (admin_user_id) REFERENCES users(id),
-    CONSTRAINT fk_adminlog_targetuser FOREIGN KEY (target_user_id) REFERENCES users(id)
+
+    CONSTRAINT fk_adminlog_admin
+        FOREIGN KEY (admin_user_id) REFERENCES users(id),
+    CONSTRAINT fk_adminlog_targetuser
+        FOREIGN KEY (target_user_id) REFERENCES users(id)
 );
 
 -- ===============================
--- 15) 인증/검증: verifications
+-- 15) 인증/검증: verifications (이메일/전화/SMS/비밀번호 재설정 코드 등 공통)
 -- ===============================
 CREATE TABLE verifications (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+
     user_id         BIGINT NULL,
+    -- 가입 전 인증 등 user가 없을 수도 있으므로 NULL 허용
+
     channel         VARCHAR(20) NOT NULL,
+    -- 'email', 'phone' 등
+
     target_value    VARCHAR(255) NOT NULL,
+    -- 인증 대상 값 (이메일 주소, 전화번호 등)
+
     purpose         VARCHAR(50) NOT NULL,
+    -- 'signup', 'password_reset', 'login', 'change_contact', '2fa' 등
+
     code            VARCHAR(50) NOT NULL,
+    -- 이메일은 긴 토큰, SMS는 6자리 숫자 등
+
     expires_at      TIMESTAMP NOT NULL,
     verified_at     TIMESTAMP NULL,
+
     attempt_count   INT NOT NULL DEFAULT 0,
     status          VARCHAR(20) NOT NULL DEFAULT 'pending',
+    -- 'pending', 'verified', 'expired', 'canceled'
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_verifications_user FOREIGN KEY (user_id) REFERENCES users(id)
+
+    CONSTRAINT fk_verifications_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ===============================
@@ -281,11 +383,18 @@ CREATE TABLE verifications (
 CREATE TABLE auth_login_attempts (
     id              BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id         BIGINT NULL,
+    -- 이메일로 사용자 찾지 못한 경우 NULL
+
     email           VARCHAR(255) NULL,
+    -- 로그인 시도시 입력된 이메일/아이디
+
     success         BOOLEAN NOT NULL,
     failure_reason  VARCHAR(100) NULL,
+    -- 'INVALID_PASSWORD', 'USER_NOT_FOUND', 'LOCKED' 등
+
     ip_address      VARCHAR(50) NULL,
     user_agent      TEXT NULL,
+
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -305,7 +414,8 @@ CREATE INDEX idx_user_profiles_company_name ON user_profiles(company_name);
 
 -- user_auth_providers
 CREATE INDEX idx_auth_providers_user_id ON user_auth_providers(user_id);
-CREATE UNIQUE INDEX idx_auth_providers_provider_user ON user_auth_providers(provider, provider_user_id);
+CREATE UNIQUE INDEX idx_auth_providers_provider_user
+    ON user_auth_providers(provider, provider_user_id);
 
 -- user_roles
 CREATE UNIQUE INDEX idx_user_roles_code ON user_roles(code);
@@ -348,7 +458,8 @@ CREATE INDEX idx_order_items_price_plan_id ON order_items(price_plan_id);
 -- payments
 CREATE INDEX idx_payments_order_id ON payments(order_id);
 CREATE INDEX idx_payments_user_id ON payments(user_id);
-CREATE UNIQUE INDEX idx_payments_provider_payment_id ON payments(provider, provider_payment_id);
+CREATE UNIQUE INDEX idx_payments_provider_payment_id
+    ON payments(provider, provider_payment_id);
 CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_payments_created_at ON payments(created_at);
 
@@ -360,7 +471,8 @@ CREATE INDEX idx_refunds_status ON refunds(status);
 CREATE INDEX idx_activity_logs_user_id ON user_activity_logs(user_id);
 CREATE INDEX idx_activity_logs_action ON user_activity_logs(action);
 CREATE INDEX idx_activity_logs_created_at ON user_activity_logs(created_at);
-CREATE INDEX idx_activity_logs_user_created ON user_activity_logs(user_id, created_at);
+CREATE INDEX idx_activity_logs_user_created
+    ON user_activity_logs(user_id, created_at);
 
 -- admin_operation_logs
 CREATE INDEX idx_admin_logs_admin_user_id ON admin_operation_logs(admin_user_id);
@@ -369,71 +481,13 @@ CREATE INDEX idx_admin_logs_created_at ON admin_operation_logs(created_at);
 
 -- verifications
 CREATE INDEX idx_verifications_user_id ON verifications(user_id);
-CREATE INDEX idx_verifications_lookup ON verifications(channel, target_value, purpose, status);
+CREATE INDEX idx_verifications_lookup
+    ON verifications(channel, target_value, purpose, status);
 CREATE INDEX idx_verifications_created_at ON verifications(created_at);
 
 -- auth_login_attempts
 CREATE INDEX idx_login_attempts_user_id ON auth_login_attempts(user_id);
 CREATE INDEX idx_login_attempts_email ON auth_login_attempts(email);
 CREATE INDEX idx_login_attempts_created_at ON auth_login_attempts(created_at);
-CREATE INDEX idx_login_attempts_ip_created ON auth_login_attempts(ip_address, created_at);
-
--- ===============================
--- updated_at 자동 갱신 트리거
--- ===============================
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_user_auth_providers_updated_at BEFORE UPDATE ON user_auth_providers
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_price_plans_updated_at BEFORE UPDATE ON price_plans
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_refunds_updated_at BEFORE UPDATE ON refunds
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ===============================
--- 초기 데이터 삽입
--- ===============================
-
--- 기본 역할 데이터
-INSERT INTO user_roles (code, name, description) VALUES
-    ('admin', '관리자', '전체 시스템 관리자'),
-    ('user', '일반 사용자', '일반 솔루션 이용자'),
-    ('partner', '파트너', '비즈니스 파트너');
-
--- 기본 상품 데이터
-INSERT INTO products (code, name, description, is_active) VALUES
-    ('BULC', 'BulC 화재 시뮬레이션', '실제 화재 데이터 기반 연기 시뮬레이션', TRUE),
-    ('METEOR', 'Meteor Simulation', '화재 확산 예측 시뮬레이션', TRUE),
-    ('VR_TRAINING', 'VR 안전 교육', 'VR 기반 화재 대피 훈련', TRUE);
-
--- 초기화 완료 메시지
-DO $$
-BEGIN
-    RAISE NOTICE 'Database initialization completed successfully!';
-END $$;
+CREATE INDEX idx_login_attempts_ip_created
+    ON auth_login_attempts(ip_address, created_at);
