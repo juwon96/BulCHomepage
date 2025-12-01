@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './LoginModal.css';
 
+// 로그인 성공 시 히스토리 정리 (뒤로가기 방지)
+const clearAuthHistory = () => {
+  // 현재 URL로 히스토리 대체 - 뒤로가기 시 로그인 전 상태로 가지 않도록
+  window.history.replaceState({ loggedIn: true }, '', window.location.href);
+};
+
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSwitchToSignup?: () => void;
+  onSuccess?: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSwitchToSignup, onSuccess }) => {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +60,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       if (success) {
         setUsername('');
         setPassword('');
-        onClose();
+        clearAuthHistory(); // 로그인 성공 시 히스토리 정리
+        onSuccess?.(); // 성공 콜백 호출
       } else {
         setError('아이디 또는 비밀번호가 올바르지 않습니다.');
       }
@@ -149,7 +158,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
         <div className="modal-signup">
           <span>계정이 없으신가요?</span>
-          <button type="button" className="modal-signup-link">회원가입</button>
+          <button type="button" className="modal-signup-link" onClick={onSwitchToSignup}>회원가입</button>
         </div>
       </div>
     </div>

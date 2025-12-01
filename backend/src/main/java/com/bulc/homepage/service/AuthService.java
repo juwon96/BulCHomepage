@@ -1,6 +1,7 @@
 package com.bulc.homepage.service;
 
 import com.bulc.homepage.dto.request.LoginRequest;
+import com.bulc.homepage.dto.request.RefreshTokenRequest;
 import com.bulc.homepage.dto.request.SignupRequest;
 import com.bulc.homepage.dto.response.AuthResponse;
 import com.bulc.homepage.entity.AuthLoginAttempt;
@@ -166,5 +167,54 @@ public class AuthService {
         } catch (Exception e) {
             log.error("로그인 시도 로그 저장 실패: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Refresh Token을 사용하여 새로운 Access Token 발급
+     */
+    @Transactional(readOnly = true)
+    public AuthResponse refreshToken(RefreshTokenRequest request) {
+        String refreshToken = request.getRefreshToken();
+
+        // Refresh Token 유효성 검사
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            throw new RuntimeException("유효하지 않은 Refresh Token입니다");
+        }
+
+        // Refresh Token에서 이메일 추출
+        String email = jwtTokenProvider.getEmailFromToken(refreshToken);
+
+        // 사용자 조회
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+
+        // 계정 상태 확인
+        if (!"active".equals(user.getStatus())) {
+            throw new RuntimeException("비활성화된 계정입니다");
+        }
+
+        // 프로필 조회
+        UserProfile profile = userProfileRepository.findByUserId(user.getId())
+                .orElse(null);
+
+        // 새로운 Access Token 생성
+        String newAccessToken = jwtTokenProvider.generateAccessToken(email);
+        // 새로운 Refresh Token도 발급 (선택적)
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(email);
+
+        log.info("토큰 갱신 성공 - 아이디: {}", email);
+
+        return AuthResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .tokenType("Bearer")
+                .expiresIn(accessTokenExpiration / 1000)
+                .user(AuthResponse.UserInfo.builder()
+                        .id(user.getId())
+                        .email(user.getEmail())
+                        .name(profile != null ? profile.getName() : null)
+                        .status(user.getStatus())
+                        .build())
+                .build();
     }
 }

@@ -81,7 +81,7 @@ const QuizSection: React.FC = () => {
   const current = quizData[currentQuestion];
 
   return (
-    <section className="quiz-section">
+    <section className="quiz-section vr-section">
       <div className="quiz-container">
         <div className="quiz-grid">
           {/* Left Content */}

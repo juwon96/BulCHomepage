@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
 import './CategoryPages.css';
 import Header from '../components/Header';
-import HeroSection from './HeroSection';
-import QuizSection from './QuizSection';
 
 const SUB_NAV_ITEMS = [
-  { id: 'simulator', label: '체험 시뮬레이터' },
-  { id: 'education', label: '교육 과정' },
-  { id: 'diagnosis', label: '안전 진단' },
-  { id: 'verification', label: '효과 검증' },
+  { id: 'intro', label: '소개' },
+  { id: 'features', label: '기능' },
+  { id: 'cases', label: '적용 사례' },
+  { id: 'inquiry', label: '도입 문의' },
 ];
 
 const BulCPage: React.FC = () => {
-  const [activeMenu, setActiveMenu] = useState('simulator');
+  const [activeMenu, setActiveMenu] = useState('intro');
 
   return (
     <div className="app">
@@ -21,32 +19,32 @@ const BulCPage: React.FC = () => {
         subNavItems={SUB_NAV_ITEMS}
         activeSubNav={activeMenu}
         onSubNavChange={setActiveMenu}
-        contactLabel="체험 문의하기"
+        contactLabel="도입 문의하기"
       />
 
       <main className="main-content sub-page">
-        {activeMenu === 'simulator' && (
-          <>
-            <HeroSection />
-            <QuizSection />
-          </>
-        )}
-        {activeMenu === 'education' && (
+        {activeMenu === 'intro' && (
           <div className="page-container">
-            <h1 className="page-title">BulC</h1>
-            <p className="page-subtitle">교육 과정</p>
+            <h1 className="page-title">BUL:C</h1>
+            <p className="page-subtitle">소개</p>
           </div>
         )}
-        {activeMenu === 'diagnosis' && (
+        {activeMenu === 'features' && (
           <div className="page-container">
-            <h1 className="page-title">BulC</h1>
-            <p className="page-subtitle">안전 진단</p>
+            <h1 className="page-title">BUL:C</h1>
+            <p className="page-subtitle">기능</p>
           </div>
         )}
-        {activeMenu === 'verification' && (
+        {activeMenu === 'cases' && (
           <div className="page-container">
-            <h1 className="page-title">BulC</h1>
-            <p className="page-subtitle">효과 검증</p>
+            <h1 className="page-title">BUL:C</h1>
+            <p className="page-subtitle">적용 사례</p>
+          </div>
+        )}
+        {activeMenu === 'inquiry' && (
+          <div className="page-container">
+            <h1 className="page-title">BUL:C</h1>
+            <p className="page-subtitle">도입 문의</p>
           </div>
         )}
       </main>

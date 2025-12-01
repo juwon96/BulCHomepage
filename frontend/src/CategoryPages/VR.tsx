@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import './CategoryPages.css';
 import Header from '../components/Header';
+import HeroSection from './HeroSection';
+import QuizSection from './QuizSection';
 
 const SUB_NAV_ITEMS = [
-  { id: 'intro', label: '소개' },
-  { id: 'experience', label: '체험 환경' },
-  { id: 'content', label: '콘텐츠' },
-  { id: 'inquiry', label: '구축 문의' },
+  { id: 'simulator', label: '체험 시뮬레이터' },
+  { id: 'education', label: '교육 과정' },
+  { id: 'diagnosis', label: '안전 진단' },
+  { id: 'verification', label: '효과 검증' },
 ];
 
 const VRPage: React.FC = () => {
-  const [activeMenu, setActiveMenu] = useState('intro');
+  const [activeMenu, setActiveMenu] = useState('simulator');
 
   return (
     <div className="app">
@@ -23,28 +25,28 @@ const VRPage: React.FC = () => {
       />
 
       <main className="main-content sub-page">
-        {activeMenu === 'intro' && (
+        {activeMenu === 'simulator' && (
+          <>
+            <HeroSection />
+            <QuizSection />
+          </>
+        )}
+        {activeMenu === 'education' && (
           <div className="page-container">
             <h1 className="page-title">VR</h1>
-            <p className="page-subtitle">소개</p>
+            <p className="page-subtitle">교육 과정</p>
           </div>
         )}
-        {activeMenu === 'experience' && (
+        {activeMenu === 'diagnosis' && (
           <div className="page-container">
             <h1 className="page-title">VR</h1>
-            <p className="page-subtitle">체험 환경</p>
+            <p className="page-subtitle">안전 진단</p>
           </div>
         )}
-        {activeMenu === 'content' && (
+        {activeMenu === 'verification' && (
           <div className="page-container">
             <h1 className="page-title">VR</h1>
-            <p className="page-subtitle">콘텐츠</p>
-          </div>
-        )}
-        {activeMenu === 'inquiry' && (
-          <div className="page-container">
-            <h1 className="page-title">VR</h1>
-            <p className="page-subtitle">구축 문의</p>
+            <p className="page-subtitle">효과 검증</p>
           </div>
         )}
       </main>

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import LoginModal from './LoginModal';
+import SignupModal from './SignupModal';
+import AlertModal from './AlertModal';
 import './Header.css';
 
 interface HeaderProps {
@@ -25,10 +27,51 @@ const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const { isLoggedIn, logout } = useAuth();
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [signupModalOpen, setSignupModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  }>({ isOpen: false, message: '', type: 'info' });
+
+  const handleSwitchToSignup = () => {
+    setLoginModalOpen(false);
+    setSignupModalOpen(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setSignupModalOpen(false);
+    setLoginModalOpen(true);
+  };
 
   const handleLogout = () => {
     logout();
+    // 로그아웃 후 히스토리 정리 - 뒤로가기 시 로그인 상태 페이지로 가지 않도록
+    window.history.replaceState({ loggedOut: true }, '', window.location.href);
+    // 로그아웃 알림
+    setAlertModal({
+      isOpen: true,
+      title: '로그아웃',
+      message: '로그아웃 되었습니다.',
+      type: 'success',
+    });
+  };
+
+  // 로그인 성공 콜백
+  const handleLoginSuccess = () => {
+    setLoginModalOpen(false);
+    setAlertModal({
+      isOpen: true,
+      title: '로그인 성공',
+      message: '환영합니다! 로그인 되었습니다.',
+      type: 'success',
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertModal({ ...alertModal, isOpen: false });
   };
 
   const handleLogoClick = () => {
@@ -134,7 +177,25 @@ const Header: React.FC<HeaderProps> = ({
         </>
       )}
 
-      <LoginModal isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
+      <LoginModal
+        isOpen={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onSwitchToSignup={handleSwitchToSignup}
+        onSuccess={handleLoginSuccess}
+      />
+      <SignupModal
+        isOpen={signupModalOpen}
+        onClose={() => setSignupModalOpen(false)}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        autoClose={3000}
+      />
     </>
   );
 };

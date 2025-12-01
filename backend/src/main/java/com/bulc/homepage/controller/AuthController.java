@@ -1,6 +1,7 @@
 package com.bulc.homepage.controller;
 
 import com.bulc.homepage.dto.request.LoginRequest;
+import com.bulc.homepage.dto.request.RefreshTokenRequest;
 import com.bulc.homepage.dto.request.SignupRequest;
 import com.bulc.homepage.dto.response.ApiResponse;
 import com.bulc.homepage.dto.response.AuthResponse;
@@ -37,6 +38,13 @@ public class AuthController {
         log.info("Login request for email: {} from IP: {}", request.getEmail(), ipAddress);
         AuthResponse response = authService.login(request, ipAddress, userAgent);
         return ResponseEntity.ok(ApiResponse.success("로그인 성공", response));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        log.info("Token refresh request");
+        AuthResponse response = authService.refreshToken(request);
+        return ResponseEntity.ok(ApiResponse.success("토큰 갱신 성공", response));
     }
 
     private String getClientIp(HttpServletRequest request) {
