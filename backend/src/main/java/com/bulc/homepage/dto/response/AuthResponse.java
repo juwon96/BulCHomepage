@@ -26,9 +26,9 @@ public class AuthResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserInfo {
-        private Long id;
+        private String id;  // email이 ID로 사용됨
         private String email;
         private String name;
-        private String status;
+        private String rolesCode;
     }
 }

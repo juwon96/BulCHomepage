@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
 
-    List<ActivityLog> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<ActivityLog> findByUserEmailOrderByCreatedAtDesc(String userEmail);
 
     List<ActivityLog> findByActionOrderByCreatedAtDesc(String action);
 
