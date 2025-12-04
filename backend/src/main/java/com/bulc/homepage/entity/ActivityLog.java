@@ -5,13 +5,13 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_activity_logs")
+@Table(name = "activity_logs")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserActivityLog {
+public class ActivityLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,26 +21,23 @@ public class UserActivityLog {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 50)
     private String action;
 
-    @Column(name = "resource_path", length = 500)
-    private String resourcePath;
+    @Column(name = "target_type", length = 50)
+    private String targetType;
 
-    @Column(name = "http_method", length = 10)
-    private String httpMethod;
+    @Column(name = "target_id")
+    private Long targetId;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "ip_address", length = 50)
     private String ipAddress;
 
-    @Column(name = "user_agent", columnDefinition = "text")
+    @Column(name = "user_agent", columnDefinition = "TEXT")
     private String userAgent;
-
-    @Column(length = 500)
-    private String referrer;
-
-    @Column(columnDefinition = "text")
-    private String metadata;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

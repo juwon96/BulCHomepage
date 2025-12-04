@@ -17,7 +17,7 @@ interface LoginModalProps {
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSwitchToSignup, onSuccess }) => {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -53,17 +53,34 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSwitchToSign
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // 프론트엔드 유효성 검사
+    if (!email.trim()) {
+      setError('이메일을 입력해주세요.');
+      return;
+    }
+    // 이메일 형식 검사
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+    if (!password) {
+      setError('비밀번호를 입력해주세요.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const success = await login(username, password);
-      if (success) {
-        setUsername('');
+      const result = await login(email, password);
+      if (result.success) {
+        setEmail('');
         setPassword('');
         clearAuthHistory(); // 로그인 성공 시 히스토리 정리
         onSuccess?.(); // 성공 콜백 호출
       } else {
-        setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+        setError(result.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
       }
     } catch {
       setError('로그인 중 오류가 발생했습니다.');
@@ -87,11 +104,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSwitchToSign
 
         <form className="modal-form" onSubmit={handleSubmit}>
           <input
-            type="text"
-            placeholder="아이디"
+            type="email"
+            placeholder="이메일"
             className="modal-input"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading}
           />
           <div className="password-input-wrapper">

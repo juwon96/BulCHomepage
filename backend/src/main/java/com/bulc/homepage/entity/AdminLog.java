@@ -5,26 +5,36 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_roles")
+@Table(name = "admin_logs")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserRole {
+public class AdminLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String code;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_id", nullable = false)
+    private User admin;
 
     @Column(nullable = false, length = 100)
-    private String name;
+    private String action;
+
+    @Column(name = "target_type", nullable = false, length = 50)
+    private String targetType;
+
+    @Column(name = "target_id")
+    private Long targetId;
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "ip_address", length = 50)
+    private String ipAddress;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

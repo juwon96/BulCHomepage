@@ -60,7 +60,7 @@
 /* Left Content (now Top Content) */
 .hero-left {
   flex: 1;
-  max-width: 700px;
+  /* max-width: 700px; */
   text-align: center;
 }
 

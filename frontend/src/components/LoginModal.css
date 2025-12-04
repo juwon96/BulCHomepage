@@ -160,6 +160,7 @@
   cursor: not-allowed;
 }
 
+
 /* ========================================
    PASSWORD INPUT WITH TOGGLE
 ======================================== */
@@ -172,6 +173,12 @@
 .password-input-wrapper .modal-input {
   width: 100%;
   padding-right: 48px;
+}
+
+/* Hide Edge's built-in password reveal icon so only the custom toggle appears */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
 }
 
 .password-toggle-btn {

@@ -3,7 +3,7 @@ import './HeroSection.css';
 
 const HeroSection: React.FC = () => {
   return (
-    <section className="hero-section vr-section">
+    <section className="hero-section" /* vr-section */>
       {/* Background Decorations */}
       <div className="hero-blur hero-blur-1"></div>
       <div className="hero-blur hero-blur-2"></div>

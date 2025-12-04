@@ -6,10 +6,15 @@ interface User {
   name?: string;
 }
 
+interface LoginResult {
+  success: boolean;
+  message?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   sessionTimeLeft: number | null; // 남은 세션 시간 (초)
 }
@@ -157,7 +162,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [logout, refreshAccessToken]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     try {
       console.log('Attempting login for:', email);
       const response = await fetch(`${getApiBaseUrl()}/api/auth/login`, {
@@ -193,13 +198,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         console.log('Login successful, user:', userData);
-        return true;
+        return { success: true };
       }
       console.log('Login failed - success:', result.success, 'data:', result.data);
-      return false;
+      return { success: false, message: result.message || '로그인에 실패했습니다.' };
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { success: false, message: '로그인 중 오류가 발생했습니다.' };
     }
   };
 

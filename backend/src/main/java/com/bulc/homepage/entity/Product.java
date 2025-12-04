@@ -5,37 +5,30 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "products")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
-    private String email;
+    @Column(nullable = false, unique = true, length = 50)
+    private String code;
 
-    @Column(name = "password_hash", length = 255)
-    private String passwordHash;
-
-    @Column(length = 100)
+    @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(name = "phone_number", length = 50)
-    private String phoneNumber;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-    @Column(nullable = false, length = 20)
+    @Column(name = "is_active", nullable = false)
     @Builder.Default
-    private String status = "active";
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id")
-    private UserRole role;
+    private Boolean isActive = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

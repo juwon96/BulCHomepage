@@ -5,13 +5,13 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_role_mappings")
+@Table(name = "user_change_logs")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserRoleMapping {
+public class UserChangeLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,9 +21,20 @@ public class UserRoleMapping {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false)
-    private UserRole role;
+    @Column(name = "changed_field", nullable = false, length = 50)
+    private String changedField;
+
+    @Column(name = "old_value", columnDefinition = "TEXT")
+    private String oldValue;
+
+    @Column(name = "new_value", columnDefinition = "TEXT")
+    private String newValue;
+
+    @Column(name = "changed_by")
+    private Long changedBy;
+
+    @Column(name = "change_reason", columnDefinition = "TEXT")
+    private String changeReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

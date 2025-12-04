@@ -30,13 +30,19 @@
 
 /* VR Section 공통 너비 제한 */
 .vr-section {
-  max-width: 900px;
-  width: 100%;
+  max-width: 1024px;
+  /* width: 100%; */
   margin: 0 auto;
   box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {
+  .vr-section {
+    max-width: 1024px;
+  }
+}
+
+@media (max-width: 768px) {
   .vr-section {
     max-width: 100%;
     padding: 0 24px;

@@ -1,9 +1,9 @@
 package com.bulc.homepage.service;
 
 import com.bulc.homepage.dto.request.ActivityLogRequest;
+import com.bulc.homepage.entity.ActivityLog;
 import com.bulc.homepage.entity.User;
-import com.bulc.homepage.entity.UserActivityLog;
-import com.bulc.homepage.repository.UserActivityLogRepository;
+import com.bulc.homepage.repository.ActivityLogRepository;
 import com.bulc.homepage.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ActivityLogService {
 
-    private final UserActivityLogRepository activityLogRepository;
+    private final ActivityLogRepository activityLogRepository;
     private final UserRepository userRepository;
 
     @Async
@@ -28,15 +28,13 @@ public class ActivityLogService {
         try {
             User user = getCurrentUser();
 
-            UserActivityLog activityLog = UserActivityLog.builder()
+            ActivityLog activityLog = ActivityLog.builder()
                     .user(user)
                     .action(request.getAction())
-                    .resourcePath(request.getResourcePath())
-                    .httpMethod(request.getHttpMethod())
+                    .targetType(request.getResourcePath() != null ? "resource" : null)
+                    .description(buildDescription(request, httpRequest))
                     .ipAddress(getClientIpAddress(httpRequest))
                     .userAgent(httpRequest.getHeader("User-Agent"))
-                    .referrer(request.getReferrer())
-                    .metadata(request.getMetadata())
                     .build();
 
             activityLogRepository.save(activityLog);
@@ -51,14 +49,13 @@ public class ActivityLogService {
         try {
             User user = getCurrentUser();
 
-            UserActivityLog activityLog = UserActivityLog.builder()
+            ActivityLog activityLog = ActivityLog.builder()
                     .user(user)
                     .action(action)
-                    .resourcePath(resourcePath)
-                    .httpMethod(httpMethod)
+                    .targetType("resource")
+                    .description(String.format("%s %s", httpMethod, resourcePath))
                     .ipAddress(getClientIpAddress(httpRequest))
                     .userAgent(httpRequest.getHeader("User-Agent"))
-                    .referrer(httpRequest.getHeader("Referer"))
                     .build();
 
             activityLogRepository.save(activityLog);
@@ -69,16 +66,16 @@ public class ActivityLogService {
 
     @Transactional
     public void logLoginActivity(User user, HttpServletRequest httpRequest, boolean success) {
-        String action = success ? "LOGIN_SUCCESS" : "LOGIN_FAILED";
+        String action = success ? "login" : "login_failed";
 
-        UserActivityLog activityLog = UserActivityLog.builder()
+        ActivityLog activityLog = ActivityLog.builder()
                 .user(user)
                 .action(action)
-                .resourcePath("/api/auth/login")
-                .httpMethod("POST")
+                .targetType("user")
+                .targetId(user != null ? user.getId() : null)
+                .description(success ? "로그인 성공" : "로그인 실패")
                 .ipAddress(getClientIpAddress(httpRequest))
                 .userAgent(httpRequest.getHeader("User-Agent"))
-                .referrer(httpRequest.getHeader("Referer"))
                 .build();
 
         activityLogRepository.save(activityLog);
@@ -86,17 +83,31 @@ public class ActivityLogService {
 
     @Transactional
     public void logSignupActivity(User user, HttpServletRequest httpRequest) {
-        UserActivityLog activityLog = UserActivityLog.builder()
+        ActivityLog activityLog = ActivityLog.builder()
                 .user(user)
-                .action("SIGNUP")
-                .resourcePath("/api/auth/signup")
-                .httpMethod("POST")
+                .action("signup")
+                .targetType("user")
+                .targetId(user.getId())
+                .description("회원가입 완료")
                 .ipAddress(getClientIpAddress(httpRequest))
                 .userAgent(httpRequest.getHeader("User-Agent"))
-                .referrer(httpRequest.getHeader("Referer"))
                 .build();
 
         activityLogRepository.save(activityLog);
+    }
+
+    private String buildDescription(ActivityLogRequest request, HttpServletRequest httpRequest) {
+        StringBuilder sb = new StringBuilder();
+        if (request.getHttpMethod() != null) {
+            sb.append(request.getHttpMethod()).append(" ");
+        }
+        if (request.getResourcePath() != null) {
+            sb.append(request.getResourcePath());
+        }
+        if (request.getMetadata() != null) {
+            sb.append(" - Metadata: ").append(request.getMetadata());
+        }
+        return sb.toString();
     }
 
     private User getCurrentUser() {

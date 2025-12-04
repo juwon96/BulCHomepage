@@ -57,6 +57,11 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
     setPhoneNumber(formatted);
   };
 
+  // 복사/붙여넣기 방지 핸들러
+  const preventCopyPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+  };
+
   // 회원가입 핸들러
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +69,17 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
 
     // 유효성 검사
     if (!email.trim()) {
-      setError('아이디를 입력해주세요.');
+      setError('이메일을 입력해주세요.');
       return;
     }
-    if (email.length < 4 || email.length > 50) {
-      setError('아이디는 4자 이상 50자 이하여야 합니다.');
+    // 이메일 형식 검사
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('올바른 이메일 형식을 입력해주세요.');
+      return;
+    }
+    if (email.length > 255) {
+      setError('이메일은 255자 이하여야 합니다.');
       return;
     }
     if (!password) {
@@ -77,6 +88,22 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
     }
     if (password.length < 8) {
       setError('비밀번호는 8자 이상이어야 합니다.');
+      return;
+    }
+    // 비밀번호 복잡성 검사
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasDigit = /[0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(password);
+    if (!hasLetter) {
+      setError('비밀번호에 영문자를 포함해야 합니다.');
+      return;
+    }
+    if (!hasDigit) {
+      setError('비밀번호에 숫자를 포함해야 합니다.');
+      return;
+    }
+    if (!hasSpecialChar) {
+      setError('비밀번호에 특수문자를 포함해야 합니다.');
       return;
     }
     if (password !== passwordConfirm) {
@@ -143,15 +170,15 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
 
         <form className="modal-form" onSubmit={handleSubmit}>
           <div className="input-group">
-            <label className="input-label">아이디 <span className="required">*</span></label>
+            <label className="input-label">이메일 <span className="required">*</span></label>
             <input
-              type="text"
-              placeholder="4~50자의 아이디"
+              type="email"
+              placeholder="example@email.com"
               className="modal-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
-              maxLength={50}
+              maxLength={255}
             />
           </div>
 
@@ -164,6 +191,9 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
                 className="modal-input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onCopy={preventCopyPaste}
+                onPaste={preventCopyPaste}
+                onCut={preventCopyPaste}
                 disabled={isLoading}
               />
               <button
@@ -185,6 +215,7 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
                 )}
               </button>
             </div>
+            <p className="input-hint">영문, 숫자, 특수문자를 포함한 8자 이상</p>
           </div>
 
           <div className="input-group">
@@ -196,6 +227,9 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
                 className="modal-input"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
+                onCopy={preventCopyPaste}
+                onPaste={preventCopyPaste}
+                onCut={preventCopyPaste}
                 disabled={isLoading}
               />
               <button
@@ -227,6 +261,9 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
               className="modal-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              onCopy={preventCopyPaste}
+              onPaste={preventCopyPaste}
+              onCut={preventCopyPaste}
               disabled={isLoading}
               maxLength={50}
             />
@@ -240,6 +277,9 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
               className="modal-input"
               value={phoneNumber}
               onChange={handlePhoneChange}
+              onCopy={preventCopyPaste}
+              onPaste={preventCopyPaste}
+              onCut={preventCopyPaste}
               disabled={isLoading}
               maxLength={13}
             />
