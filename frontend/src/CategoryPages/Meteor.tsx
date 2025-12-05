@@ -12,6 +12,7 @@ const SUB_NAV_ITEMS = [
   { id: 'menu2', label: 'Solutions' },
   { id: 'menu3', label: 'Achievements' },
   { id: 'menu4', label: 'Investing' },
+  { id: 'menu5', label: 'Teams' },
 ];
 
 const MeteorPage: React.FC = () => {
@@ -20,6 +21,7 @@ const MeteorPage: React.FC = () => {
   const menu2Ref = useRef<HTMLDivElement>(null);
   const menu3Ref = useRef<HTMLDivElement>(null);
   const menu4Ref = useRef<HTMLDivElement>(null);
+  const menu5Ref = useRef<HTMLDivElement>(null);
 
   // Handle sub-navigation clicks
   const handleSubNavClick = (menuId: string) => {
@@ -31,6 +33,7 @@ const MeteorPage: React.FC = () => {
     else if (menuId === 'menu2') targetRef = menu2Ref;
     else if (menuId === 'menu3') targetRef = menu3Ref;
     else if (menuId === 'menu4') targetRef = menu4Ref;
+    else if (menuId === 'menu5') targetRef = menu5Ref;
 
     if (targetRef?.current) {
       const headerOffset = 140; // Account for fixed header height
@@ -49,7 +52,9 @@ const MeteorPage: React.FC = () => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 200; // Offset for better UX
 
-      if (menu4Ref.current && scrollPosition >= menu4Ref.current.offsetTop) {
+      if (menu5Ref.current && scrollPosition >= menu5Ref.current.offsetTop) {
+        setActiveMenu('menu5');
+      } else if (menu4Ref.current && scrollPosition >= menu4Ref.current.offsetTop) {
         setActiveMenu('menu4');
       } else if (menu3Ref.current && scrollPosition >= menu3Ref.current.offsetTop) {
         setActiveMenu('menu3');
@@ -94,6 +99,81 @@ const MeteorPage: React.FC = () => {
                 </p>
               </div>
               <MeteorInvesting />
+            </div>
+          </section>
+        </div>
+        <div ref={menu5Ref}>
+          <section className="meteor-section meteor-teams">
+            <div className="meteor-container">
+              <div className="section-header">
+                <div className="section-eyebrow">OUR TEAM</div>
+                <h2 className="section-title">팀 소개</h2>
+                <p className="section-description">
+                  화재 시뮬레이션과 AI 기술 분야의 전문가들이 함께합니다.
+                </p>
+              </div>
+
+              <div className="teams-grid">
+                <div className="team-card">
+                  <div className="team-silhouette">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="50" cy="35" r="20" fill="#C4320A"/>
+                      <ellipse cx="50" cy="75" rx="30" ry="25" fill="#C4320A"/>
+                    </svg>
+                  </div>
+                  <h3 className="team-name">대표이사</h3>
+                  <p className="team-role">CEO</p>
+                  <p className="team-description">공학박사/겸임교수<br/>화재 CFD 전문/기술영업</p>
+                </div>
+
+                <div className="team-card">
+                  <div className="team-silhouette">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="50" cy="35" r="20" fill="#C4320A"/>
+                      <ellipse cx="50" cy="75" rx="30" ry="25" fill="#C4320A"/>
+                    </svg>
+                  </div>
+                  <h3 className="team-name">기술이사</h3>
+                  <p className="team-role">CTO</p>
+                  <p className="team-description">AI/ML 연구개발</p>
+                </div>
+
+                <div className="team-card">
+                  <div className="team-silhouette">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="50" cy="35" r="20" fill="#C4320A"/>
+                      <ellipse cx="50" cy="75" rx="30" ry="25" fill="#C4320A"/>
+                    </svg>
+                  </div>
+                  <h3 className="team-name">수석 엔지니어</h3>
+                  <p className="team-role">Lead Engineer</p>
+                  <p className="team-description">시뮬레이션 개발/수행</p>
+                </div>
+
+                <div className="team-card">
+                  <div className="team-silhouette">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="50" cy="35" r="20" fill="#C4320A"/>
+                      <ellipse cx="50" cy="75" rx="30" ry="25" fill="#C4320A"/>
+                    </svg>
+                  </div>
+                  <h3 className="team-name">기술영업</h3>
+                  <p className="team-role">Business Development</p>
+                  <p className="team-description">전 중앙대 부총장</p>
+                </div>
+
+                <div className="team-card">
+                  <div className="team-silhouette">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="50" cy="35" r="20" fill="#C4320A"/>
+                      <ellipse cx="50" cy="75" rx="30" ry="25" fill="#C4320A"/>
+                    </svg>
+                  </div>
+                  <h3 className="team-name">회계/영업</h3>
+                  <p className="team-role">Accounting & Sales</p>
+                  <p className="team-description">정부출연 R&D 관리<br/>회계 영업</p>
+                </div>
+              </div>
             </div>
           </section>
         </div>

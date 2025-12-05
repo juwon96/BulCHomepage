@@ -243,13 +243,48 @@
   grid-column: 1 / -1;
 }
 
+.solution-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
 .solution-title {
   font-family: var(--font-main);
   font-size: 24px;
   font-weight: 900;
   color: var(--text-primary);
-  margin-bottom: 16px;
   letter-spacing: -0.01em;
+  flex: 1;
+}
+
+.completion-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: #000000;
+}
+
+.completion-badge.complete {
+  background: #C4320A;
+  color: #FFFFFF;
+  border: none;
+}
+
+.completion-badge.high {
+  background: #E88B73;
+  border: none;
+}
+
+.completion-badge.medium {
+  background: #F5C4B8;
+  border: none;
 }
 
 .solution-description {
@@ -328,6 +363,82 @@
   border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   Teams Page
+======================================== */
+
+.meteor-teams {
+  background: var(--light-gray);
+}
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 40px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.team-card {
+  background: var(--white);
+  padding: 48px 40px;
+  border-radius: 12px;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.team-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent);
+}
+
+.team-silhouette {
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 28px;
+  background: var(--light-gray);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.team-card:hover .team-silhouette {
+  background: var(--off-white);
+  transform: scale(1.05);
+}
+
+.team-silhouette svg {
+  width: 90px;
+  height: 90px;
+}
+
+.team-name {
+  font-family: var(--font-main);
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.team-role {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.team-description {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 /* ========================================
