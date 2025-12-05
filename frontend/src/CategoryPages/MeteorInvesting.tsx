@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +26,16 @@ ChartJS.register(
 
 const MeteorInvesting: React.FC = () => {
   const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 480);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleActivity = (activityId: string) => {
     setExpandedActivity(expandedActivity === activityId ? null : activityId);
@@ -101,22 +111,22 @@ const MeteorInvesting: React.FC = () => {
       },
       title: {
         display: true,
-        text: 'Revenue Growth & AI Forecast (단위: 백만원)',
+        text: isMobile ? '매출 성장 & AI 예측' : 'Revenue Growth & AI Forecast (단위: 백만원)',
         font: {
-          size: 18,
+          size: isMobile ? 14 : 18,
           weight: 'bold',
         },
-        padding: 20,
+        padding: isMobile ? 12 : 20,
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        padding: 12,
+        padding: isMobile ? 8 : 12,
         titleFont: {
-          size: 14,
+          size: isMobile ? 11 : 14,
           weight: 'bold',
         },
         bodyFont: {
-          size: 13,
+          size: isMobile ? 10 : 13,
         },
         callbacks: {
           label: function(context: any) {
@@ -125,7 +135,7 @@ const MeteorInvesting: React.FC = () => {
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += context.parsed.y.toLocaleString() + '백만원';
+              label += context.parsed.y.toLocaleString() + (isMobile ? 'M' : '백만원');
             }
             return label;
           }
@@ -140,7 +150,7 @@ const MeteorInvesting: React.FC = () => {
             return value.toLocaleString() + 'M';
           },
           font: {
-            size: 12,
+            size: isMobile ? 9 : 12,
           }
         },
         grid: {
@@ -153,7 +163,7 @@ const MeteorInvesting: React.FC = () => {
         },
         ticks: {
           font: {
-            size: 12,
+            size: isMobile ? 9 : 12,
             weight: 'bold',
           }
         }
@@ -622,12 +632,21 @@ const MeteorInvesting: React.FC = () => {
   };
 
   return (
-    <div className="investing-container">
+    <>
       {/* Revenue Chart Section */}
-      <section className="chart-section">
-        <div className="chart-wrapper">
-          <Line data={revenueData} options={chartOptions} />
-        </div>
+      <section className="meteor-section chart-section">
+        <div className="meteor-container">
+          <div className="section-header">
+            <div className="section-eyebrow">FINANCIAL OVERVIEW</div>
+            <h2 className="section-title">투자 정보</h2>
+            <p className="section-description">
+              매출 현황과 미래 전망을 확인하실 수 있습니다.
+            </p>
+          </div>
+
+          <div className="chart-wrapper">
+            <Line data={revenueData} options={chartOptions} />
+          </div>
 
         {/* AI Prediction Models Explanation */}
         <div className="ai-models-section">
@@ -729,13 +748,147 @@ const MeteorInvesting: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
+      </section>
+
+      {/* Financial Metrics Section */}
+      <section className="meteor-section financial-metrics-section">
+        <div className="meteor-container">
+          <h3 className="section-subtitle">재무 핵심 지표</h3>
+
+          <div className="metrics-grid">
+          {/* Unit Economics */}
+          <div className="metric-card unit-economics">
+            <div className="metric-card-header">
+              <h4 className="metric-card-title">Unit Economics</h4>
+              <p className="metric-card-subtitle">사업 부문별 수익성</p>
+            </div>
+            <div className="metric-card-body">
+              <div className="unit-items-grid">
+                <div className="unit-item primary">
+                  <div className="unit-content">
+                    <span className="unit-label">시뮬레이션 용역</span>
+                    <span className="unit-value">43%</span>
+                  </div>
+                </div>
+                <div className="unit-item secondary">
+                  <div className="unit-content">
+                    <span className="unit-label">S/W 판매</span>
+                    <span className="unit-value">40%</span>
+                  </div>
+                </div>
+                <div className="unit-item tertiary">
+                  <div className="unit-content">
+                    <span className="unit-label">R&D 용역</span>
+                    <span className="unit-value">15%</span>
+                  </div>
+                </div>
+              </div>
+              <p className="metric-description">
+                평균 프로젝트 규모 80백만원 기준, 직접비(인건비, 컴퓨팅) 제외 후 이익률입니다.
+                시뮬레이션 용역과 소프트웨어 판매가 주력 수익원입니다.
+              </p>
+            </div>
+          </div>
+
+          {/* Gross Margin */}
+          <div className="metric-card gross-margin">
+            <div className="metric-card-header">
+              <h4 className="metric-card-title">Gross Margin</h4>
+              <p className="metric-card-subtitle">매출총이익률 추이</p>
+            </div>
+            <div className="metric-card-body">
+              <div className="gross-margin-timeline">
+                <div className="margin-item past">
+                  <span className="margin-year">2023</span>
+                  <span className="margin-value negative">-11%</span>
+                </div>
+                <div className="margin-item past">
+                  <span className="margin-year">2024</span>
+                  <span className="margin-value">2%</span>
+                </div>
+                <div className="margin-item current">
+                  <span className="margin-year">2025</span>
+                  <span className="margin-value positive">20%</span>
+                </div>
+                <div className="margin-item future">
+                  <span className="margin-year">2026</span>
+                  <span className="margin-value positive">42%</span>
+                </div>
+                <div className="margin-item future">
+                  <span className="margin-year">2027</span>
+                  <span className="margin-value positive">54%</span>
+                </div>
+                <div className="margin-item future">
+                  <span className="margin-year">2028~</span>
+                  <span className="margin-value positive">50%+</span>
+                </div>
+              </div>
+              <p className="metric-description">
+                <strong>고정비:</strong> 3.4억원/년 (인건비, 사무실, 소프트웨어 라이센스 등)
+                <br/>
+                <strong>전략:</strong> 2027년 54% 달성 후 50%대 유지를 목표로 합니다.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Market Size - TAM/SAM/SOM */}
+        <div className="market-size-section">
+          <h4 className="market-size-title">시장 규모 분석 (TAM/SAM/SOM)</h4>
+          <div className="market-research-placeholder">
+            <div className="research-icon-img">
+              <img src="/img/bulc-bg.png" alt="Research" />
+            </div>
+            <p className="research-text">Researching Now.</p>
+          </div>
+        </div>
+
+        {/* Exit Strategy */}
+        <div className="exit-strategy-section">
+          <h4 className="exit-strategy-title">Exit 전략</h4>
+          <div className="exit-cards">
+            <div className="exit-card secondary">
+              <h5 className="exit-card-title">M&A (전략적 인수합병)</h5>
+              <p className="exit-timeline"><strong>유력 후보:</strong> G건설 등</p>
+              <ul className="exit-milestones">
+                <li>국내 대형 건설사 (G건설, S물산, H건설 등)</li>
+                <li>글로벌 시뮬레이션 기업 (Autodesk, Ansys 등)</li>
+                <li>방재 솔루션 기업 (Honeywell, Siemens 등)</li>
+                <li>게임 엔진 기업 (Unity, Epic Games)</li>
+              </ul>
+              <p className="exit-description">
+                독보적인 AI-Physical 시뮬레이션 기술과 검증된 고객 기반을 바탕으로 전략적 M&A 추진. 화재 시뮬레이션 및 PBD 분야에서 전략적 협력 관계를 통해 우선 협상 가능성 보유.
+              </p>
+            </div>
+
+            <div className="exit-card primary">
+              <h5 className="exit-card-title">IPO (기업공개)</h5>
+              <p className="exit-timeline"><strong>목표 시기:</strong> 10년 이내 (2033-2035)</p>
+              <ul className="exit-milestones">
+                <li>2026-2028년: 매출 10억원 달성, 흑자 전환 안정화</li>
+                <li>2029-2030년: 매출 30억원, 영업이익률 40%+</li>
+                <li>2031-2032년: Pre-IPO 투자 유치, 매출 60억원+</li>
+                <li>2033-2035년: KOSDAQ 상장 (목표 시가총액 800억원+)</li>
+              </ul>
+              <p className="exit-description">
+                장기적인 매출 성장과 높은 이익률을 바탕으로 KOSDAQ 상장을 통해 글로벌 시장 확장 자금 확보. 10년의 충분한 성장 기간을 통해 안정적 상장 추진.
+              </p>
+            </div>
+          </div>
+          <div className="exit-note">
+            <strong>※ 전략:</strong> M&A를 우선 목표로 하며 전략적 협력을 통한 인수합병을 추진합니다. 장기적으로는 10년 내 IPO를 목표로 하되, 시장 상황과 전략적 제휴 기회에 따라 유연하게 대응합니다.
+          </div>
+        </div>
+        </div>
       </section>
 
       {/* Key Expected Clients Section */}
-      <section className="clients-section">
-        <h3 className="section-subtitle">주요 예상 고객</h3>
+      <section className="meteor-section clients-section">
+        <div className="meteor-container">
+          <h3 className="section-subtitle">주요 예상 고객</h3>
 
-        {/* Tier 1 */}
+          {/* Tier 1 */}
         <div className="tier-row tier-1">
           <div className="tier-label-box">
             <span className="tier-badge">TIER 1</span>
@@ -861,14 +1014,16 @@ const MeteorInvesting: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
       </section>
 
       {/* Marketing Strategy Timeline Section */}
-      <section className="marketing-section">
-        <h3 className="section-subtitle">2026 마케팅 전략 타임라인</h3>
-        <p className="section-intro">
-          체계적인 마케팅 계획을 통해 글로벌 시장을 공략합니다
-        </p>
+      <section className="meteor-section marketing-section">
+        <div className="meteor-container">
+          <h3 className="section-subtitle">2026 마케팅 전략 타임라인</h3>
+          <p className="section-intro">
+            체계적인 마케팅 계획을 통해 글로벌 시장을 공략합니다
+          </p>
 
         {/* Category Legend */}
         <div className="timeline-legend">
@@ -952,11 +1107,13 @@ const MeteorInvesting: React.FC = () => {
             </div>
           ))}
         </div>
+        </div>
       </section>
 
       {/* Competitive Analysis Section */}
-      <section className="marketing-section">
-        <h3 className="section-subtitle">경쟁사 분석</h3>
+      <section className="meteor-section marketing-section">
+        <div className="meteor-container">
+          <h3 className="section-subtitle">경쟁사 분석</h3>
         <p className="section-intro">
           글로벌 화재 시뮬레이션 시장의 주요 경쟁사 현황
         </p>
@@ -1335,8 +1492,9 @@ const MeteorInvesting: React.FC = () => {
             </div>
           </div>
         </div>
+        </div>
       </section>
-    </div>
+    </>
   );
 };
 

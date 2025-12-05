@@ -89,18 +89,7 @@ const MeteorPage: React.FC = () => {
           <MeteorAchievements />
         </div>
         <div ref={menu4Ref}>
-          <section className="meteor-section meteor-investing">
-            <div className="meteor-container">
-              <div className="section-header">
-                <div className="section-eyebrow">FINANCIAL OVERVIEW</div>
-                <h2 className="section-title">투자 정보</h2>
-                <p className="section-description">
-                  매출 현황과 미래 전망을 확인하실 수 있습니다.
-                </p>
-              </div>
-              <MeteorInvesting />
-            </div>
-          </section>
+          <MeteorInvesting />
         </div>
         <div ref={menu5Ref}>
           <section className="meteor-section meteor-teams">

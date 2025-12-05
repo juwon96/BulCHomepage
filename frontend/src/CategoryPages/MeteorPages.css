@@ -377,7 +377,6 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 40px;
-  max-width: 1600px;
   margin: 0 auto;
 }
 
@@ -566,6 +565,11 @@
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .teams-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
 }
 
 /* ========================================
@@ -638,6 +642,11 @@
   .btn-sample {
     width: 100%;
   }
+
+  .teams-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
 }
 
 /* ========================================
@@ -681,5 +690,14 @@
     color: var(--text-primary);
     display: block;
     margin-bottom: 8px;
+  }
+
+  .teams-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .team-card {
+    padding: 32px 24px;
   }
 }

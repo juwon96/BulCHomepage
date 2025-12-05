@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Skill(frontend-design:frontend-design)"
     ],
     "deny": [],
     "ask": []
