@@ -27,11 +27,21 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
-        // User 엔티티의 role 필드에서 직접 권한 가져오기
-        if (user.getRole() != null) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode().toUpperCase()));
+        // rolesCode 기반 권한 설정
+        String rolesCode = user.getRolesCode();
+        if (rolesCode != null) {
+            switch (rolesCode) {
+                case "000":
+                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                    break;
+                case "001":
+                    authorities.add(new SimpleGrantedAuthority("ROLE_MANAGER"));
+                    break;
+                default:
+                    authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+                    break;
+            }
         } else {
-            // 기본 역할이 없으면 USER 역할 추가
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         }
 

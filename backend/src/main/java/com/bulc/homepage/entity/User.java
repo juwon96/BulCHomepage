@@ -14,27 +14,22 @@ import java.time.LocalDateTime;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(nullable = false, length = 255)
     private String email;
+
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private Boolean emailVerified = false;
 
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
-    @Column(length = 100)
-    private String name;
-
-    @Column(name = "phone_number", length = 50)
-    private String phoneNumber;
-
-    @Column(nullable = false, length = 20)
+    @Column(name = "roles_code", nullable = false, length = 10)
     @Builder.Default
-    private String status = "active";
+    private String rolesCode = "002";
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id")
+    @JoinColumn(name = "roles_code", referencedColumnName = "code", insertable = false, updatable = false)
     private UserRole role;
 
     @Column(name = "created_at", nullable = false, updatable = false)

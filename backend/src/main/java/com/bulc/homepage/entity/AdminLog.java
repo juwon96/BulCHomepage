@@ -17,8 +17,11 @@ public class AdminLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "admin_email", nullable = false, length = 255)
+    private String adminEmail;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "admin_id", nullable = false)
+    @JoinColumn(name = "admin_email", referencedColumnName = "email", insertable = false, updatable = false)
     private User admin;
 
     @Column(nullable = false, length = 100)

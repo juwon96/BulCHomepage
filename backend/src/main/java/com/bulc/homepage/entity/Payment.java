@@ -18,8 +18,11 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_email_fk", length = 255)
+    private String userEmailFk;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_email_fk", referencedColumnName = "email", insertable = false, updatable = false)
     private User user;
 
     @Column(name = "user_email", nullable = false, length = 255)

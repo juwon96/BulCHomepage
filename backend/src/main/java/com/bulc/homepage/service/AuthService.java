@@ -6,10 +6,8 @@ import com.bulc.homepage.dto.request.SignupRequest;
 import com.bulc.homepage.dto.response.AuthResponse;
 import com.bulc.homepage.entity.ActivityLog;
 import com.bulc.homepage.entity.User;
-import com.bulc.homepage.entity.UserRole;
 import com.bulc.homepage.repository.ActivityLogRepository;
 import com.bulc.homepage.repository.UserRepository;
-import com.bulc.homepage.repository.UserRoleRepository;
 import com.bulc.homepage.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final UserRoleRepository userRoleRepository;
     private final ActivityLogRepository activityLogRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
@@ -43,24 +40,18 @@ public class AuthService {
             throw new RuntimeException("이미 가입된 이메일입니다");
         }
 
-        // 기본 역할 (user) 조회
-        UserRole userRole = userRoleRepository.findByCode("user")
-                .orElse(null);
-
-        // User 생성
+        // User 생성 (email이 PK)
         User user = User.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .name(request.getName())
-                .phoneNumber(request.getPhoneNumber())
-                .status("active")
-                .role(userRole)
+                .emailVerified(false)
+                .rolesCode("002")  // 기본값: 일반 사용자
                 .build();
 
         user = userRepository.save(user);
 
         // 회원가입 로그 저장
-        saveActivityLog(user, "signup", "user", user.getId(), "회원가입 완료");
+        saveActivityLog(user.getEmail(), "signup", "user", null, "회원가입 완료");
 
         // JWT 토큰 생성
         String accessToken = jwtTokenProvider.generateAccessToken(user.getEmail());
@@ -72,17 +63,17 @@ public class AuthService {
                 .tokenType("Bearer")
                 .expiresIn(accessTokenExpiration / 1000)
                 .user(AuthResponse.UserInfo.builder()
-                        .id(user.getId())
+                        .id(user.getEmail())
                         .email(user.getEmail())
-                        .name(request.getName())
-                        .status(user.getStatus())
+                        .name(user.getEmail())  // name 필드가 없으므로 email 사용
+                        .rolesCode(user.getRolesCode())
                         .build())
                 .build();
     }
 
     @Transactional
     public AuthResponse login(LoginRequest request, String ipAddress, String userAgent) {
-        log.info("로그인 시도 - 아이디: {}, IP: {}, User-Agent: {}", request.getEmail(), ipAddress, userAgent);
+        log.info("로그인 시도 - 이메일: {}, IP: {}, User-Agent: {}", request.getEmail(), ipAddress, userAgent);
 
         // 먼저 사용자 존재 여부 확인
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
@@ -97,19 +88,13 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
 
-            // 계정 상태 확인
-            if (!"active".equals(user.getStatus())) {
-                saveActivityLog(user, "login_failed", "user", user.getId(), "비활성화된 계정 - IP: " + ipAddress);
-                throw new RuntimeException("비활성화된 계정입니다.");
-            }
-
             // JWT 토큰 생성
             String accessToken = jwtTokenProvider.generateAccessToken(authentication);
             String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
 
             // 로그인 성공 로그
-            saveActivityLog(user, "login", "user", user.getId(), "로그인 성공 - IP: " + ipAddress);
-            log.info("로그인 성공 - 아이디: {}, IP: {}", request.getEmail(), ipAddress);
+            saveActivityLog(user.getEmail(), "login", "user", null, "로그인 성공 - IP: " + ipAddress);
+            log.info("로그인 성공 - 이메일: {}, IP: {}", request.getEmail(), ipAddress);
 
             return AuthResponse.builder()
                     .accessToken(accessToken)
@@ -117,32 +102,32 @@ public class AuthService {
                     .tokenType("Bearer")
                     .expiresIn(accessTokenExpiration / 1000)
                     .user(AuthResponse.UserInfo.builder()
-                            .id(user.getId())
+                            .id(user.getEmail())
                             .email(user.getEmail())
-                            .name(user.getName())
-                            .status(user.getStatus())
+                            .name(user.getEmail())
+                            .rolesCode(user.getRolesCode())
                             .build())
                     .build();
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
             // 비밀번호 오류
-            saveActivityLog(user, "login_failed", "user", user.getId(), "비밀번호 오류 - IP: " + ipAddress);
-            log.warn("로그인 실패 - 비밀번호 오류, 아이디: {}, IP: {}", request.getEmail(), ipAddress);
+            saveActivityLog(user.getEmail(), "login_failed", "user", null, "비밀번호 오류 - IP: " + ipAddress);
+            log.warn("로그인 실패 - 비밀번호 오류, 이메일: {}, IP: {}", request.getEmail(), ipAddress);
             throw new RuntimeException("비밀번호가 올바르지 않습니다.");
         } catch (RuntimeException e) {
             // 이미 처리된 RuntimeException은 그대로 전파
             throw e;
         } catch (Exception e) {
             // 기타 예외
-            saveActivityLog(user, "login_failed", "user", user.getId(), "로그인 실패: " + e.getMessage() + " - IP: " + ipAddress);
-            log.warn("로그인 실패 - 아이디: {}, IP: {}, 사유: {}", request.getEmail(), ipAddress, e.getMessage());
+            saveActivityLog(user.getEmail(), "login_failed", "user", null, "로그인 실패: " + e.getMessage() + " - IP: " + ipAddress);
+            log.warn("로그인 실패 - 이메일: {}, IP: {}, 사유: {}", request.getEmail(), ipAddress, e.getMessage());
             throw new RuntimeException("로그인 중 오류가 발생했습니다.");
         }
     }
 
-    private void saveActivityLog(User user, String action, String targetType, Long targetId, String description) {
+    private void saveActivityLog(String userEmail, String action, String targetType, Long targetId, String description) {
         try {
             ActivityLog activityLog = ActivityLog.builder()
-                    .user(user)
+                    .userEmail(userEmail)
                     .action(action)
                     .targetType(targetType)
                     .targetId(targetId)
@@ -173,17 +158,12 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
 
-        // 계정 상태 확인
-        if (!"active".equals(user.getStatus())) {
-            throw new RuntimeException("비활성화된 계정입니다");
-        }
-
         // 새로운 Access Token 생성
         String newAccessToken = jwtTokenProvider.generateAccessToken(email);
         // 새로운 Refresh Token도 발급 (선택적)
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(email);
 
-        log.info("토큰 갱신 성공 - 아이디: {}", email);
+        log.info("토큰 갱신 성공 - 이메일: {}", email);
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
@@ -191,10 +171,10 @@ public class AuthService {
                 .tokenType("Bearer")
                 .expiresIn(accessTokenExpiration / 1000)
                 .user(AuthResponse.UserInfo.builder()
-                        .id(user.getId())
+                        .id(user.getEmail())
                         .email(user.getEmail())
-                        .name(user.getName())
-                        .status(user.getStatus())
+                        .name(user.getEmail())
+                        .rolesCode(user.getRolesCode())
                         .build())
                 .build();
     }

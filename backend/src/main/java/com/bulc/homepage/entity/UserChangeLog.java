@@ -17,8 +17,11 @@ public class UserChangeLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "user_email", length = 255)
+    private String userEmail;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_email", referencedColumnName = "email", insertable = false, updatable = false)
     private User user;
 
     @Column(name = "changed_field", nullable = false, length = 50)
@@ -30,8 +33,12 @@ public class UserChangeLog {
     @Column(name = "new_value", columnDefinition = "TEXT")
     private String newValue;
 
-    @Column(name = "changed_by")
-    private Long changedBy;
+    @Column(name = "changed_by_email", length = 255)
+    private String changedByEmail;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "changed_by_email", referencedColumnName = "email", insertable = false, updatable = false)
+    private User changedBy;
 
     @Column(name = "change_reason", columnDefinition = "TEXT")
     private String changeReason;

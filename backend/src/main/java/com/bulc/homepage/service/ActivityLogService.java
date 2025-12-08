@@ -29,7 +29,7 @@ public class ActivityLogService {
             User user = getCurrentUser();
 
             ActivityLog activityLog = ActivityLog.builder()
-                    .user(user)
+                    .userEmail(user != null ? user.getEmail() : null)
                     .action(request.getAction())
                     .targetType(request.getResourcePath() != null ? "resource" : null)
                     .description(buildDescription(request, httpRequest))
@@ -50,7 +50,7 @@ public class ActivityLogService {
             User user = getCurrentUser();
 
             ActivityLog activityLog = ActivityLog.builder()
-                    .user(user)
+                    .userEmail(user != null ? user.getEmail() : null)
                     .action(action)
                     .targetType("resource")
                     .description(String.format("%s %s", httpMethod, resourcePath))
@@ -69,10 +69,10 @@ public class ActivityLogService {
         String action = success ? "login" : "login_failed";
 
         ActivityLog activityLog = ActivityLog.builder()
-                .user(user)
+                .userEmail(user != null ? user.getEmail() : null)
                 .action(action)
                 .targetType("user")
-                .targetId(user != null ? user.getId() : null)
+                .targetId(null)
                 .description(success ? "로그인 성공" : "로그인 실패")
                 .ipAddress(getClientIpAddress(httpRequest))
                 .userAgent(httpRequest.getHeader("User-Agent"))
@@ -84,10 +84,10 @@ public class ActivityLogService {
     @Transactional
     public void logSignupActivity(User user, HttpServletRequest httpRequest) {
         ActivityLog activityLog = ActivityLog.builder()
-                .user(user)
+                .userEmail(user.getEmail())
                 .action("signup")
                 .targetType("user")
-                .targetId(user.getId())
+                .targetId(null)
                 .description("회원가입 완료")
                 .ipAddress(getClientIpAddress(httpRequest))
                 .userAgent(httpRequest.getHeader("User-Agent"))
