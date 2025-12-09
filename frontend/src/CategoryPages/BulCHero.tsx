@@ -9,11 +9,12 @@ const BulCHero: React.FC = () => {
         <div className="bulc-hero-container">
           <div className="hero-eyebrow">AI FOR GOOD · SIMULATION FOR SAFETY</div>
           <h1 className="hero-title">
-            화재를 예측하는<br/>
-            <span className="highlight">가장 빠른 시뮬레이터</span>
+            대규모 화재 시뮬레이션의<br/>
+            <span className="highlight">압도적 속도와 정확한 예측</span>
           </h1>
           <p className="hero-subtitle">
-            누구나 쉽고 실수 없이 BUL:C 는 AI 기반 자동 설정과 GPU 가속 기술을 결합하여 기존 대비 3-15배 빠른 화재-피난 시뮬레이션 결과를 제공합니다.
+            Fire-AmgX GPU 가속으로 기존 FDS 대비 10배 이상 빠른 데이터 생성.<br/>
+            Physical AI PINN/PIDON 기반으로 1초 내 실시간 화재 확산 예측을 실현합니다.
           </p>
           <div className="hero-actions">
             <div className="btn-wrapper">

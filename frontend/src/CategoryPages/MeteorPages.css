@@ -196,6 +196,367 @@
 }
 
 /* ========================================
+   Industry Applications Section
+======================================== */
+
+.industry-applications {
+  padding: 100px 48px;
+  background: var(--light-gray);
+}
+
+.industry-container {
+  max-width: var(--container-width);
+  margin: 0 auto;
+}
+
+.industry-main-title {
+  font-family: var(--font-main);
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 900;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 80px;
+  letter-spacing: -0.02em;
+}
+
+.industry-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  margin-bottom: 80px;
+}
+
+.industry-card.reverse {
+  direction: rtl;
+}
+
+.industry-card.reverse > * {
+  direction: ltr;
+}
+
+.industry-card:last-child {
+  margin-bottom: 0;
+}
+
+.industry-image {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--mid-gray);
+}
+
+.industry-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.industry-badge {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.industry-badge.critical {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.industry-content {
+  padding: 20px 0;
+}
+
+.industry-title {
+  font-family: var(--font-main);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  letter-spacing: -0.01em;
+}
+
+.industry-description {
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.industry-description .highlight-orange {
+  color: #ea580c;
+  font-weight: 600;
+}
+
+.industry-description .highlight-red {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.industry-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.industry-stat {
+  background: var(--white);
+  border: 1px solid var(--mid-gray);
+  border-radius: 8px;
+  padding: 20px 28px;
+  min-width: 160px;
+}
+
+.industry-stat .stat-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.industry-stat .stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.industry-stat .stat-value .highlight-orange {
+  color: #ea580c;
+}
+
+@media (max-width: 1024px) {
+  .industry-applications {
+    padding: 80px 32px;
+  }
+
+  .industry-card {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .industry-card.reverse {
+    direction: ltr;
+  }
+
+  .industry-title {
+    font-size: 28px;
+  }
+
+  .industry-stats {
+    flex-wrap: wrap;
+  }
+
+  .industry-stat {
+    flex: 1;
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 768px) {
+  .industry-applications {
+    padding: 60px 24px;
+  }
+
+  .industry-main-title {
+    font-size: 32px;
+    margin-bottom: 48px;
+  }
+
+  .industry-card {
+    margin-bottom: 48px;
+  }
+
+  .industry-title {
+    font-size: 24px;
+  }
+
+  .industry-description {
+    font-size: 15px;
+  }
+
+  .industry-stat {
+    padding: 16px 20px;
+  }
+
+  .industry-stat .stat-value {
+    font-size: 20px;
+  }
+}
+
+/* ========================================
+   Core Technology Image Banner
+======================================== */
+
+.core-tech-banner {
+  padding: 80px 48px;
+  background: var(--light-gray);
+}
+
+.core-tech-main-title {
+  font-family: var(--font-main);
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 900;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 60px;
+  letter-spacing: -0.02em;
+}
+
+.core-tech-images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  max-width: var(--container-width);
+  margin: 0 auto;
+}
+
+.core-tech-card {
+  background: var(--white);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--mid-gray);
+  transition: all 0.3s ease;
+}
+
+.core-tech-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent);
+}
+
+.core-tech-image {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.core-tech-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.core-tech-card:hover .core-tech-image img {
+  transform: scale(1.05);
+}
+
+.core-tech-content {
+  padding: 32px;
+}
+
+.core-tech-icon {
+  font-size: 22px;
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.core-tech-title {
+  font-family: var(--font-main);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.core-tech-description {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.core-tech-description strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.core-tech-description .highlight-green {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.core-tech-description .highlight-red {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.core-tech-description .highlight-purple {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.core-tech-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.core-tech-features li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding-left: 20px;
+  position: relative;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.core-tech-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (max-width: 1024px) {
+  .core-tech-banner {
+    padding: 60px 32px;
+  }
+
+  .core-tech-images {
+    gap: 24px;
+  }
+
+  .core-tech-content {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .core-tech-banner {
+    padding: 48px 24px;
+  }
+
+  .core-tech-images {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .core-tech-image {
+    aspect-ratio: 16 / 9;
+  }
+
+  .core-tech-content {
+    padding: 24px;
+  }
+
+  .core-tech-title {
+    font-size: 20px;
+  }
+}
+
+/* ========================================
    Solutions Page
 ======================================== */
 
