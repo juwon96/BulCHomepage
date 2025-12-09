@@ -9,11 +9,11 @@ const BulCHero: React.FC = () => {
         <div className="bulc-hero-container">
           <div className="hero-eyebrow">AI FOR GOOD · SIMULATION FOR SAFETY</div>
           <h1 className="hero-title">
-            화재를 예측하고<br/>
-            <span className="highlight">생명을 구합니다</span>
+            화재를 예측하는<br/>
+            <span className="highlight">가장 빠른 시뮬레이터</span>
           </h1>
           <p className="hero-subtitle">
-            BULC는 AI 기반 화재 시뮬레이션 프로그램입니다. 복잡한 전문 지식 없이도 누구나 쉽고 정확하게 화재를 예측하여 안전을 확보할 수 있습니다.
+            누구나 쉽고 실수 없이 BUL:C 는 AI 기반 자동 설정과 GPU 가속 기술을 결합하여 기존 대비 3-15배 빠른 화재-피난 시뮬레이션 결과를 제공합니다.
           </p>
           <div className="hero-actions">
             <div className="btn-wrapper">
