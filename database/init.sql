@@ -255,11 +255,10 @@ INSERT INTO price_plans (product_id, name, duration_months, price, currency, is_
     (2, '6개월', 6, 714000.00, 'KRW', TRUE),
     (2, '12개월', 12, 1248000.00, 'KRW', TRUE);
 
--- 테스트 사용자 계정 (비밀번호: 1234)
--- BCrypt 해시: $2a$10$N9qo8uLOickgx2ZMRZoMye7EtHGrr8tQKqLF5O.9kYVEJvVVcezDK
-INSERT INTO users (email, password_hash, name, phone_number, status, role_id) VALUES
-    ('admin@meteor.com', '$2a$10$N9qo8uLOickgx2ZMRZoMye7EtHGrr8tQKqLF5O.9kYVEJvVVcezDK', 'Admin', NULL, 'active', 1),
-    ('user@test.com', '$2a$10$N9qo8uLOickgx2ZMRZoMye7EtHGrr8tQKqLF5O.9kYVEJvVVcezDK', 'Test User', '010-1234-5678', 'active', 2);
+-- 기본 관리자 계정 (비밀번호: test1234!)
+-- BCrypt 해시 (회원가입을 통해 생성된 검증된 해시)
+INSERT INTO users (email, password_hash, email_verified, roles_code) VALUES
+    ('meteor@gmail.com', '$2a$10$rOQjVAlviNnj1vpC5k.1UuP6lOgX2E5Ztz8FcqzKZpG8JF.XFA4P2', true, '000');
 
 -- ===============================
 -- 17) 라이선스 플랜 (정책 템플릿): license_plans

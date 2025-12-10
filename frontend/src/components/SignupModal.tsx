@@ -11,8 +11,6 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [name, setName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [error, setError] = useState('');
@@ -54,19 +52,6 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
     if (e.target === e.currentTarget) {
       onClose();
     }
-  };
-
-  // 전화번호 포맷팅
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/[^\d]/g, '');
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setPhoneNumber(formatted);
   };
 
   // API Base URL
@@ -277,8 +262,6 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
         body: JSON.stringify({
           email,
           password,
-          name: name.trim() || undefined,
-          phoneNumber: phoneNumber.replace(/-/g, '') || undefined,
         }),
       });
 
@@ -290,8 +273,6 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
         setEmail('');
         setPassword('');
         setPasswordConfirm('');
-        setName('');
-        setPhoneNumber('');
         setEmailCheckStatus('idle');
         setEmailCheckMessage('');
         setVerificationCode('');
@@ -326,12 +307,11 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
 
         <form className="modal-form" onSubmit={handleSubmit}>
           <div className="input-group">
-            <label className="input-label">이메일 <span className="required">*</span></label>
-            <div className="email-input-wrapper">
+            <div className="input-with-label">
+              <span className="input-inner-label">아이디(이메일)</span>
               <input
                 type="email"
-                placeholder="example@email.com"
-                className={`modal-input ${emailCheckStatus === 'exists' ? 'input-error' : emailCheckStatus === 'available' ? 'input-success' : ''}`}
+                className={`modal-input with-label ${emailCheckStatus === 'exists' ? 'input-error' : emailCheckStatus === 'available' ? 'input-success' : ''}`}
                 value={email}
                 onChange={handleEmailChange}
                 onBlur={handleEmailBlur}
@@ -405,12 +385,11 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
           </div>
 
           <div className="input-group">
-            <label className="input-label">비밀번호 <span className="required">*</span></label>
-            <div className="password-input-wrapper">
+            <div className="input-with-label">
+              <span className="input-inner-label">비밀번호</span>
               <input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="8자 이상의 비밀번호"
-                className="modal-input"
+                className="modal-input with-label"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onCopy={preventCopyPaste}
@@ -437,16 +416,24 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
                 )}
               </button>
             </div>
-            <p className="input-hint">영문, 숫자, 특수문자를 포함한 8자 이상</p>
+            {/* 비밀번호 유효성 검사 메시지 */}
+            {password.length > 0 && (
+              <>
+                {!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*()_+\-=[\]{}|;':",./<>?]/.test(password) ? (
+                  <p className="input-validation-error">영문, 숫자, 특수문자를 포함해주세요.</p>
+                ) : password.length < 8 ? (
+                  <p className="input-validation-error">비밀번호를 8자 이상으로 만들어주세요.</p>
+                ) : null}
+              </>
+            )}
           </div>
 
           <div className="input-group">
-            <label className="input-label">비밀번호 확인 <span className="required">*</span></label>
-            <div className="password-input-wrapper">
+            <div className="input-with-label">
+              <span className="input-inner-label">비밀번호 확인</span>
               <input
                 type={showPasswordConfirm ? 'text' : 'password'}
-                placeholder="비밀번호를 다시 입력"
-                className="modal-input"
+                className="modal-input with-label"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
                 onCopy={preventCopyPaste}
@@ -473,38 +460,10 @@ const SignupModal: React.FC<SignupModalProps> = ({ isOpen, onClose, onSwitchToLo
                 )}
               </button>
             </div>
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">이름</label>
-            <input
-              type="text"
-              placeholder="이름 (선택)"
-              className="modal-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onCopy={preventCopyPaste}
-              onPaste={preventCopyPaste}
-              onCut={preventCopyPaste}
-              disabled={isLoading}
-              maxLength={50}
-            />
-          </div>
-
-          <div className="input-group">
-            <label className="input-label">전화번호</label>
-            <input
-              type="tel"
-              placeholder="010-0000-0000 (선택)"
-              className="modal-input"
-              value={phoneNumber}
-              onChange={handlePhoneChange}
-              onCopy={preventCopyPaste}
-              onPaste={preventCopyPaste}
-              onCut={preventCopyPaste}
-              disabled={isLoading}
-              maxLength={13}
-            />
+            {/* 비밀번호 확인 불일치 메시지 */}
+            {passwordConfirm.length > 0 && password !== passwordConfirm && (
+              <p className="input-validation-error">위 비밀번호와 동일하게 입력해주세요.</p>
+            )}
           </div>
 
           {error && <p className="modal-error">{error}</p>}

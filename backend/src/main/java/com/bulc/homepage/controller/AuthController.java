@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,6 +27,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<AuthResponse>> signup(@Valid @RequestBody SignupRequest request) {
@@ -91,6 +93,16 @@ public class AuthController {
                 "이메일 인증이 완료되었습니다",
                 Map.of("verified", verified)
         ));
+    }
+
+    /**
+     * 비밀번호 해시 생성 (개발용 - 운영 환경에서 제거)
+     */
+    @GetMapping("/hash")
+    public ResponseEntity<ApiResponse<Map<String, String>>> generateHash(@RequestParam String password) {
+        String hash = passwordEncoder.encode(password);
+        log.info("Generated hash for password");
+        return ResponseEntity.ok(ApiResponse.success("해시 생성 완료", Map.of("hash", hash)));
     }
 
     private String getClientIp(HttpServletRequest request) {
