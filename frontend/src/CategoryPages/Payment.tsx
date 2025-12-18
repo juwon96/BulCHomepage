@@ -34,18 +34,21 @@ interface CompanyInfo {
 
 const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isAuthReady } = useAuth();
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const hasAlerted = useRef(false);
 
   // 로그인 체크 - 비로그인시 BulC Download 탭으로 이동
   useEffect(() => {
+    // 인증 상태 초기화가 완료된 후에만 체크
+    if (!isAuthReady) return;
+
     if (!isLoggedIn && !hasAlerted.current) {
       hasAlerted.current = true;
       alert('로그인이 필요한 페이지입니다.');
       navigate('/bulc', { state: { activeTab: 'download' } });
     }
-  }, [isLoggedIn, navigate]);
+  }, [isLoggedIn, isAuthReady, navigate]);
 
   // 회사 정보 로드
   useEffect(() => {
@@ -123,8 +126,8 @@ const PaymentPage: React.FC = () => {
     return price.toLocaleString() + '원';
   };
 
-  // 비로그인시 렌더링 하지 않음
-  if (!isLoggedIn) {
+  // 인증 상태 초기화 중이거나 비로그인시 렌더링 하지 않음
+  if (!isAuthReady || !isLoggedIn) {
     return null;
   }
 

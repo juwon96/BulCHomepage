@@ -14,6 +14,7 @@ interface LoginResult {
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
+  isAuthReady: boolean; // 인증 상태 초기화 완료 여부
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
   sessionTimeLeft: number | null; // 남은 세션 시간 (초)
@@ -52,6 +53,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false); // 인증 상태 초기화 완료 여부
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null);
 
   // 로그아웃 함수
@@ -140,26 +142,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // 페이지 로드 시 로컬 스토리지에서 사용자 정보 복원
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('accessToken');
+    const initAuth = async () => {
+      const storedUser = localStorage.getItem('user');
+      const storedToken = localStorage.getItem('accessToken');
 
-    if (storedUser && storedToken) {
-      // 토큰 만료 확인
-      const expiration = getTokenExpiration(storedToken);
-      if (expiration && expiration > Date.now()) {
-        setUser(JSON.parse(storedUser));
-        localStorage.setItem('tokenExpiration', expiration.toString());
-      } else {
-        // 토큰이 만료되었으면 갱신 시도
-        refreshAccessToken().then(success => {
+      if (storedUser && storedToken) {
+        // 토큰 만료 확인
+        const expiration = getTokenExpiration(storedToken);
+        if (expiration && expiration > Date.now()) {
+          setUser(JSON.parse(storedUser));
+          localStorage.setItem('tokenExpiration', expiration.toString());
+        } else {
+          // 토큰이 만료되었으면 갱신 시도
+          const success = await refreshAccessToken();
           if (success) {
             setUser(JSON.parse(storedUser));
           } else {
             logout();
           }
-        });
+        }
       }
-    }
+      setIsAuthReady(true); // 초기화 완료
+    };
+
+    initAuth();
   }, [logout, refreshAccessToken]);
 
   const login = async (email: string, password: string): Promise<LoginResult> => {
@@ -209,7 +215,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, login, logout, sessionTimeLeft }}>
+    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isAuthReady, login, logout, sessionTimeLeft }}>
       {children}
     </AuthContext.Provider>
   );
