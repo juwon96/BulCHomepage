@@ -21,18 +21,17 @@ interface IntroContentProps {
 const IntroContent: React.FC<IntroContentProps> = ({ onNavigateToDownload }) => (
   <div className="bulc-intro-section">
     <h1 className="intro-headline">
-      대규모 <span className="highlight">화재 시뮬레이션</span>의 압도적 <span className="highlight">속도</span>와 정확한 <span className="highlight">예측</span>
+      대규모 <span className="highlight">화재 시뮬레이션</span>의<br />
+      압도적 <span className="highlight">속도</span>와<br />
+      정확한 <span className="highlight">예측</span>
     </h1>
     <div className="intro-description">
       <p>Fire-AmgX GPU 가속으로 기존 FDS 대비 10배 이상 빠른 데이터 생성.</p>
       <p>Physical AI PINN/PIDON 기반으로 1초 내 실시간 화재 확산 예측을 실현합니다.</p>
     </div>
     <div className="intro-buttons">
-      <button className="intro-btn primary" onClick={onNavigateToDownload}>
+      <button className="intro-btn" onClick={onNavigateToDownload}>
         다운로드
-      </button>
-      <button className="intro-btn secondary" onClick={onNavigateToDownload}>
-        상담하기
       </button>
     </div>
   </div>
