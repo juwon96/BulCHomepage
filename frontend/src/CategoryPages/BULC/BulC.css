@@ -1,0 +1,264 @@
+/* ========================================
+   BulC PAGE - 화재 시뮬레이션 페이지
+======================================== */
+
+/* BulC Content Container (반응형 컨텐츠 영역) */
+.bulc-content-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
+  min-height: calc(100vh - 280px);
+}
+
+.bulc-content-section {
+  width: 100%;
+  background: rgba(196, 50, 10, 0.2);
+  border-radius: 12px;
+  padding: 0 40px 40px 40px;
+  box-sizing: border-box;
+}
+
+.bulc-content-section h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.bulc-content-section p {
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.6);
+  line-height: 1.6;
+}
+
+/* ========================================
+   Intro Section
+======================================== */
+.bulc-intro-section {
+  width: 100%;
+  min-height: calc(100vh - 280px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40px 80px 40px;
+  box-sizing: border-box;
+  text-align: center;
+  background: rgba(196, 50, 10, 0.2);
+  border-radius: 12px;
+}
+
+.intro-headline {
+  font-size: 64px;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.4;
+  margin: 0 0 48px 0;
+  max-width: 900px;
+}
+
+.intro-headline .highlight {
+  color: #C4320A;
+}
+
+.intro-description {
+  max-width: 700px;
+  margin-bottom: 48px;
+}
+
+.intro-description p {
+  font-size: 18px;
+  color: #555;
+  line-height: 1.8;
+  margin: 0 0 12px 0;
+}
+
+.intro-description p:last-child {
+  margin-bottom: 0;
+}
+
+.intro-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.intro-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 48px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(196, 50, 10, 0.3);
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.intro-btn:hover {
+  background: #C4320A;
+  border-color: #C4320A;
+  color: #ffffff;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(196, 50, 10, 0.3);
+}
+
+/* ========================================
+   Download Section
+======================================== */
+.bulc-download-section {
+  width: 100%;
+  min-height: calc(100vh - 280px);
+  background: rgba(196, 50, 10, 0.2);
+  border-radius: 12px;
+  padding: 0 40px 80px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.download-title {
+  font-size: 56px;
+  font-weight: 800;
+  color: #1a1a1a;
+  text-align: center;
+  margin: 0 0 60px 0;
+}
+
+.download-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 700px;
+  width: 100%;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(196, 50, 10, 0.2);
+  border-radius: 16px;
+  text-decoration: none;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  transition: all 0.3s ease;
+}
+
+.download-btn:hover {
+  background: #C4320A;
+  border-color: #C4320A;
+  color: #ffffff;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(196, 50, 10, 0.3);
+}
+
+/* ========================================
+   Responsive Design
+======================================== */
+@media (max-width: 1024px) {
+  .bulc-content-container {
+    max-width: 100%;
+    padding: 0 20px 32px 20px;
+  }
+
+  .bulc-content-section {
+    padding: 0 32px 32px 32px;
+  }
+
+  .bulc-content-section h2 {
+    font-size: 24px;
+  }
+
+  .intro-headline {
+    font-size: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bulc-content-container {
+    padding: 0 16px 24px 16px;
+    min-height: calc(100vh - 240px);
+  }
+
+  .bulc-content-section {
+    padding: 0 24px 24px 24px;
+    border-radius: 8px;
+  }
+
+  .bulc-content-section h2 {
+    font-size: 20px;
+  }
+
+  .bulc-content-section p {
+    font-size: 14px;
+  }
+
+  .bulc-intro-section {
+    padding: 0 24px 60px 24px;
+  }
+
+  .intro-headline {
+    font-size: 36px;
+    margin-bottom: 32px;
+  }
+
+  .intro-description p {
+    font-size: 15px;
+  }
+
+  .intro-buttons-grid {
+    grid-template-columns: 1fr;
+    max-width: 280px;
+  }
+
+  .intro-btn {
+    padding: 16px 36px;
+    font-size: 18px;
+  }
+
+  .bulc-download-section {
+    padding: 0 24px 60px 24px;
+  }
+
+  .download-title {
+    font-size: 36px;
+    margin-bottom: 40px;
+  }
+
+  .download-buttons-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .download-btn {
+    padding: 28px 20px;
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bulc-content-container {
+    padding: 0 12px 20px 12px;
+  }
+
+  .bulc-content-section {
+    padding: 0 20px 20px 20px;
+  }
+
+  .bulc-content-section h2 {
+    font-size: 18px;
+  }
+}

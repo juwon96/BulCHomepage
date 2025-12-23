@@ -44,14 +44,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/logs/activity").permitAll()
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/error").permitAll()
-
-                        // ==========================================
-                        // v1.1 라이선스 API 보안 설정
-                        // ==========================================
-                        // 모든 라이선스 API는 인증 필요
+                        // 라이선스 클라이언트 API (인증 없이 접근 가능)
+                        .requestMatchers("/api/licenses/*/validate").permitAll()
+                        .requestMatchers("/api/licenses/*/heartbeat").permitAll()
+                        .requestMatchers("/api/licenses/key/*").permitAll()
+                        // 라이선스 관리 API (인증 필요)
                         .requestMatchers("/api/licenses/**").authenticated()
                         .requestMatchers("/api/me/licenses/**").authenticated()
-
+                        // 결제 API (결제 완료 후 리다이렉트에서 호출)
+                        .requestMatchers("/api/payments/**").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
