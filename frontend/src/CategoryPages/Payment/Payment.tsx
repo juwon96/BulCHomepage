@@ -7,17 +7,21 @@ import './Payment.css';
 
 // 토스페이먼츠 클라이언트 키
 const TOSS_CLIENT_KEY = process.env.REACT_APP_TOSS_CLIENT_KEY || 'test_ck_Z1aOwX7K8mjmkLb4W0B03yQxzvNP';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-// 상품 플랜 타입
-interface PricePlan {
-  id: string;
+// 상품 타입
+interface Product {
+  code: string;
   name: string;
-  duration: string;
+  description: string;
+}
+
+// 요금제 타입
+interface PricePlan {
+  id: number;
+  name: string;
   price: number;
-  originalPrice?: number;
-  discount?: number;
-  features: string[];
-  popular?: boolean;
+  currency: string;
 }
 
 // 결제 정보 타입
@@ -180,13 +184,38 @@ const EasyPaymentModal: React.FC<EasyPaymentModalProps> = ({
 
 const PaymentPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, isAuthReady } = useAuth();
+  const { isLoggedIn, isAuthReady, token } = useAuth();
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const hasAlerted = useRef(false);
 
+  // 상품 및 요금제 데이터
+  const [products, setProducts] = useState<Product[]>([]);
+  const [pricePlans, setPricePlans] = useState<PricePlan[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PricePlan | null>(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(false);
+
+  // 결제 정보
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+  });
+  const [userInfoLoaded, setUserInfoLoaded] = useState(false);
+
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string>('card');
+
+  // 모달 상태
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [isEasyPaymentModalOpen, setIsEasyPaymentModalOpen] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const [selectedEasyPayment, setSelectedEasyPayment] = useState<string | null>(null);
+
   // 로그인 체크 - 비로그인시 BulC Download 탭으로 이동
   useEffect(() => {
-    // 인증 상태 초기화가 완료된 후에만 체크
     if (!isAuthReady) return;
 
     if (!isLoggedIn && !hasAlerted.current) {
@@ -204,48 +233,94 @@ const PaymentPage: React.FC = () => {
       .catch(err => console.error('회사 정보 로드 실패:', err));
   }, []);
 
-  // 상품 플랜 데이터
-  const pricePlans: PricePlan[] = [
-    {
-      id: 'monthly',
-      name: '월간 플랜',
-      duration: '1개월',
-      price: 99000,
-      features: ['기본 기능 제공', '이메일 지원', '1대 기기 활성화'],
-    },
-    {
-      id: 'annual',
-      name: '연간 플랜',
-      duration: '12개월',
-      price: 828000,
-      originalPrice: 1188000,
-      discount: 30,
-      features: ['전체 기능 제공', '전담 기술 지원', '5대 기기 활성화', '무료 업데이트'],
-      popular: true,
-    },
-  ];
+  // 상품 목록 로드
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/products`);
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data);
+          // 상품이 1개면 자동 선택
+          if (data.length === 1) {
+            setSelectedProduct(data[0]);
+          }
+        }
+      } catch (error) {
+        console.error('상품 목록 로드 실패:', error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
 
-  // 상태 관리
-  const [selectedPlan, setSelectedPlan] = useState<PricePlan | null>(null);
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
-    name: '',
-    email: '',
-    phone: '',
-    company: '',
-  });
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<string>('card');
+    fetchProducts();
+  }, []);
 
-  // 모달 상태
-  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
-  const [isEasyPaymentModalOpen, setIsEasyPaymentModalOpen] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [selectedEasyPayment, setSelectedEasyPayment] = useState<string | null>(null);
+  // 선택된 상품의 요금제 로드
+  useEffect(() => {
+    if (!selectedProduct) {
+      setPricePlans([]);
+      setSelectedPlan(null);
+      return;
+    }
+
+    const fetchPlans = async () => {
+      setIsLoadingPlans(true);
+      try {
+        const response = await fetch(`${API_URL}/api/products/${selectedProduct.code}/plans?currency=KRW`);
+        if (response.ok) {
+          const data = await response.json();
+          setPricePlans(data);
+        }
+      } catch (error) {
+        console.error('요금제 로드 실패:', error);
+      } finally {
+        setIsLoadingPlans(false);
+      }
+    };
+
+    fetchPlans();
+  }, [selectedProduct]);
+
+  // 사용자 정보 로드
+  useEffect(() => {
+    if (!isLoggedIn || !token || userInfoLoaded) return;
+
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/users/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPaymentInfo(prev => ({
+            ...prev,
+            email: data.email || '',
+            name: data.name || '',
+            phone: data.phone || '',
+          }));
+          setUserInfoLoaded(true);
+        }
+      } catch (error) {
+        console.error('사용자 정보 로드 실패:', error);
+      }
+    };
+
+    fetchUserInfo();
+  }, [isLoggedIn, token, userInfoLoaded]);
 
   // 입력 핸들러
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPaymentInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  // 상품 선택 핸들러
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setSelectedPlan(null); // 플랜 선택 초기화
   };
 
   // 결제 수단 선택 핸들러
@@ -261,26 +336,13 @@ const PaymentPage: React.FC = () => {
   // 카드 선택 핸들러
   const handleCardSelect = (cardId: string) => {
     setSelectedCard(cardId);
-    setSelectedEasyPayment(null); // 간편결제 선택 초기화
+    setSelectedEasyPayment(null);
   };
 
   // 간편결제 선택 핸들러
   const handleEasyPaymentSelect = (optionId: string) => {
     setSelectedEasyPayment(optionId);
-    setSelectedCard(null); // 카드 선택 초기화
-  };
-
-  // 선택된 결제 수단 표시 텍스트
-  const getSelectedPaymentText = () => {
-    if (selectedCard) {
-      const card = CARD_COMPANIES.find(c => c.id === selectedCard);
-      return card ? card.name : '';
-    }
-    if (selectedEasyPayment) {
-      const option = EASY_PAYMENT_OPTIONS.find(o => o.id === selectedEasyPayment);
-      return option ? option.name : '';
-    }
-    return '';
+    setSelectedCard(null);
   };
 
   // 주문 ID 생성
@@ -314,8 +376,12 @@ const PaymentPage: React.FC = () => {
 
   // 결제 처리
   const handlePayment = async () => {
+    if (!selectedProduct) {
+      alert('상품을 선택해주세요.');
+      return;
+    }
     if (!selectedPlan) {
-      alert('플랜을 선택해주세요.');
+      alert('요금제를 선택해주세요.');
       return;
     }
     if (!selectedCard && !selectedEasyPayment) {
@@ -332,32 +398,27 @@ const PaymentPage: React.FC = () => {
     }
 
     try {
-      // 토스페이먼츠 SDK 로드
       const tossPayments: TossPaymentsInstance = await loadTossPayments(TOSS_CLIENT_KEY);
 
       const orderId = generateOrderId();
       const paymentMethodType = getPaymentMethodType();
 
-      // 결제 요청
       await tossPayments.requestPayment(paymentMethodType, {
         amount: selectedPlan.price,
         orderId: orderId,
-        orderName: `BulC ${selectedPlan.name}`,
+        orderName: `${selectedProduct.name} - ${selectedPlan.name}`,
         customerName: paymentInfo.name,
         customerEmail: paymentInfo.email,
         successUrl: `${window.location.origin}/payment/success`,
         failUrl: `${window.location.origin}/payment/fail`,
-        // 카드 결제 시 카드사 지정
         ...(selectedCard && {
           cardCompany: selectedCard.toUpperCase(),
         }),
-        // 가상계좌 옵션
         ...(selectedEasyPayment === 'vbank' && {
-          validHours: 24, // 입금 유효 시간 (24시간)
+          validHours: 24,
         }),
       });
     } catch (error) {
-      // 사용자가 결제창을 닫은 경우
       if (error instanceof Error && error.message.includes('USER_CANCEL')) {
         console.log('사용자가 결제를 취소했습니다.');
         return;
@@ -383,66 +444,92 @@ const PaymentPage: React.FC = () => {
 
       <div className="payment-container">
         <div className="payment-content">
-          {/* 왼쪽: 플랜 선택 */}
+          {/* 왼쪽: 선택 영역 */}
           <div className="payment-left">
+            {/* Step 1: 상품 선택 */}
             <section className="payment-section">
               <h2 className="section-title">
                 <span className="step-number">1</span>
-                플랜 선택
+                상품 선택
               </h2>
-              <div className="plans-grid">
-                {pricePlans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className={`plan-card ${selectedPlan?.id === plan.id ? 'selected' : ''} ${plan.popular ? 'popular' : ''}`}
-                    onClick={() => setSelectedPlan(plan)}
-                  >
-                    {plan.popular && <span className="popular-badge">인기</span>}
-                    {plan.discount && <span className="discount-badge">{plan.discount}% 할인</span>}
-
-                    <div className="plan-header">
-                      <h3 className="plan-name">{plan.name}</h3>
-                      <p className="plan-duration">{plan.duration}</p>
-                    </div>
-
-                    <div className="plan-price">
-                      {plan.originalPrice && (
-                        <span className="original-price">{formatPrice(plan.originalPrice)}</span>
-                      )}
-                      <span className="current-price">{formatPrice(plan.price)}</span>
-                    </div>
-
-                    <ul className="plan-features">
-                      {plan.features.map((feature, index) => (
-                        <li key={index}>
-                          <svg viewBox="0 0 24 24" fill="none" className="check-icon">
-                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              {isLoadingProducts ? (
+                <div className="loading-placeholder">상품 목록을 불러오는 중...</div>
+              ) : (
+                <div className="products-grid">
+                  {products.map((product) => (
+                    <div
+                      key={product.code}
+                      className={`product-card ${selectedProduct?.code === product.code ? 'selected' : ''}`}
+                      onClick={() => handleProductSelect(product)}
+                    >
+                      <div className="product-header">
+                        <h3 className="product-name">{product.name}</h3>
+                      </div>
+                      <p className="product-description">{product.description}</p>
+                      <div className="product-select-indicator">
+                        {selectedProduct?.code === product.code ? (
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                           </svg>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className="plan-select-indicator">
-                      {selectedPlan?.id === plan.id ? (
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10"/>
-                        </svg>
-                      )}
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"/>
+                          </svg>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
 
-            {/* 결제 수단 선택 */}
+            {/* Step 2: 요금제 선택 */}
             <section className="payment-section">
               <h2 className="section-title">
                 <span className="step-number">2</span>
+                요금제 선택
+              </h2>
+              {!selectedProduct ? (
+                <div className="no-selection-message">상품을 먼저 선택해주세요.</div>
+              ) : isLoadingPlans ? (
+                <div className="loading-placeholder">요금제를 불러오는 중...</div>
+              ) : pricePlans.length === 0 ? (
+                <div className="no-selection-message">등록된 요금제가 없습니다.</div>
+              ) : (
+                <div className="plans-grid">
+                  {pricePlans.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className={`plan-card ${selectedPlan?.id === plan.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedPlan(plan)}
+                    >
+                      <div className="plan-header">
+                        <h3 className="plan-name">{plan.name}</h3>
+                      </div>
+                      <div className="plan-price">
+                        <span className="current-price">{formatPrice(plan.price)}</span>
+                      </div>
+                      <div className="plan-select-indicator">
+                        {selectedPlan?.id === plan.id ? (
+                          <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10"/>
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Step 3: 결제 수단 선택 */}
+            <section className="payment-section">
+              <h2 className="section-title">
+                <span className="step-number">3</span>
                 결제 수단
               </h2>
               <div className="payment-methods two-options">
@@ -494,10 +581,10 @@ const PaymentPage: React.FC = () => {
               </div>
             </section>
 
-            {/* 구매자 정보 */}
+            {/* Step 4: 구매자 정보 */}
             <section className="payment-section">
               <h2 className="section-title">
-                <span className="step-number">3</span>
+                <span className="step-number">4</span>
                 구매자 정보
               </h2>
               <div className="buyer-form">
@@ -510,6 +597,8 @@ const PaymentPage: React.FC = () => {
                       value={paymentInfo.name}
                       onChange={handleInputChange}
                       placeholder="홍길동"
+                      readOnly={!!paymentInfo.name && userInfoLoaded}
+                      className={paymentInfo.name && userInfoLoaded ? 'readonly' : ''}
                     />
                   </div>
                   <div className="form-group">
@@ -532,6 +621,8 @@ const PaymentPage: React.FC = () => {
                       value={paymentInfo.email}
                       onChange={handleInputChange}
                       placeholder="example@email.com"
+                      readOnly={!!paymentInfo.email && userInfoLoaded}
+                      className={paymentInfo.email && userInfoLoaded ? 'readonly' : ''}
                     />
                   </div>
                   <div className="form-group">
@@ -542,6 +633,8 @@ const PaymentPage: React.FC = () => {
                       value={paymentInfo.phone}
                       onChange={handleInputChange}
                       placeholder="010-1234-5678"
+                      readOnly={!!paymentInfo.phone && userInfoLoaded}
+                      className={paymentInfo.phone && userInfoLoaded ? 'readonly' : ''}
                     />
                   </div>
                 </div>
@@ -554,22 +647,15 @@ const PaymentPage: React.FC = () => {
             <div className="order-summary">
               <h3 className="summary-title">주문 요약</h3>
 
-              {selectedPlan ? (
+              {selectedProduct && selectedPlan ? (
                 <>
                   <div className="summary-product">
                     <div className="product-info">
-                      <span className="product-name">BulC {selectedPlan.name}</span>
-                      <span className="product-duration">{selectedPlan.duration}</span>
+                      <span className="product-name">{selectedProduct.name}</span>
+                      <span className="product-plan">{selectedPlan.name}</span>
                     </div>
                     <span className="product-price">{formatPrice(selectedPlan.price)}</span>
                   </div>
-
-                  {selectedPlan.originalPrice && (
-                    <div className="summary-row discount">
-                      <span>할인</span>
-                      <span>-{formatPrice(selectedPlan.originalPrice - selectedPlan.price)}</span>
-                    </div>
-                  )}
 
                   <div className="summary-divider"></div>
 
@@ -588,7 +674,7 @@ const PaymentPage: React.FC = () => {
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M12 8v4M12 16h.01"/>
                   </svg>
-                  <p>플랜을 선택해주세요</p>
+                  <p>{!selectedProduct ? '상품을 선택해주세요' : '요금제를 선택해주세요'}</p>
                 </div>
               )}
 
@@ -608,11 +694,11 @@ const PaymentPage: React.FC = () => {
               </div>
 
               <button
-                className={`payment-button ${selectedPlan && agreeTerms ? 'active' : ''}`}
+                className={`payment-button ${selectedProduct && selectedPlan && agreeTerms ? 'active' : ''}`}
                 onClick={handlePayment}
-                disabled={!selectedPlan || !agreeTerms}
+                disabled={!selectedProduct || !selectedPlan || !agreeTerms}
               >
-                {selectedPlan ? formatPrice(selectedPlan.price) + ' 결제하기' : '플랜을 선택해주세요'}
+                {selectedPlan ? formatPrice(selectedPlan.price) + ' 결제하기' : '상품과 요금제를 선택해주세요'}
               </button>
 
               <div className="payment-security">

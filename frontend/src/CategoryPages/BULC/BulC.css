@@ -43,7 +43,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 40px 80px 40px;
+  padding: 24px;
   box-sizing: border-box;
   text-align: center;
   background: rgba(196, 50, 10, 0.2);
@@ -118,7 +118,7 @@
   min-height: calc(100vh - 280px);
   background: rgba(196, 50, 10, 0.2);
   border-radius: 12px;
-  padding: 0 40px 80px 40px;
+  padding: 24px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

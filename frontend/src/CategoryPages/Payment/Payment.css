@@ -975,3 +975,94 @@
     font-size: 24px;
   }
 }
+
+/* ========================================
+   상품 선택 스타일
+======================================== */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.product-card {
+  position: relative;
+  padding: 24px;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.product-card:hover {
+  border-color: rgba(196, 50, 10, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.product-card.selected {
+  border-color: #C4320A;
+  background: linear-gradient(135deg, rgba(196, 50, 10, 0.03) 0%, rgba(232, 93, 4, 0.03) 100%);
+}
+
+.product-header {
+  margin-bottom: 12px;
+}
+
+.product-card .product-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.product-description {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.product-select-indicator {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.product-select-indicator svg {
+  width: 24px;
+  height: 24px;
+  color: #C4320A;
+}
+
+/* 로딩 및 안내 메시지 */
+.loading-placeholder,
+.no-selection-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #999;
+}
+
+/* 요약의 플랜명 */
+.product-plan {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 읽기 전용 입력 필드 */
+.form-group input.readonly {
+  background: #f5f5f7;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.form-group input.readonly:focus {
+  border-color: #e0e0e0;
+  box-shadow: none;
+}
