@@ -589,7 +589,7 @@ class LicenseServiceTest {
                     .willAnswer(inv -> inv.getArgument(0));
 
             ValidateRequest request = new ValidateRequest(
-                    null, PRODUCT_ID, null, "device-123", "1.0.0", "Windows"
+                    null, PRODUCT_ID, null, "device-123", "1.0.0", "Windows", null
             );
 
             // when
@@ -610,7 +610,7 @@ class LicenseServiceTest {
                     .willReturn(List.of());
 
             ValidateRequest request = new ValidateRequest(
-                    null, PRODUCT_ID, null, "device-123", "1.0.0", "Windows"
+                    null, PRODUCT_ID, null, "device-123", "1.0.0", "Windows", null
             );
 
             // when & then
@@ -641,7 +641,7 @@ class LicenseServiceTest {
                     .willReturn(List.of(license));
 
             ValidateRequest request = new ValidateRequest(
-                    null, PRODUCT_ID, null, "unregistered-device", "1.0.0", "Windows"
+                    null, PRODUCT_ID, null, "unregistered-device", "1.0.0", "Windows", null
             );
 
             // when & then
@@ -666,7 +666,7 @@ class LicenseServiceTest {
                     .willAnswer(inv -> inv.getArgument(0));
 
             ValidateRequest request = new ValidateRequest(
-                    null, PRODUCT_ID, null, "registered-device", "2.0.0", "Windows 11"
+                    null, PRODUCT_ID, null, "registered-device", "2.0.0", "Windows 11", null
             );
 
             // when
@@ -686,7 +686,7 @@ class LicenseServiceTest {
                     .willReturn(List.of());
 
             ValidateRequest request = new ValidateRequest(
-                    null, PRODUCT_ID, null, "device-123", "1.0.0", "Windows"
+                    null, PRODUCT_ID, null, "device-123", "1.0.0", "Windows", null
             );
 
             // when & then

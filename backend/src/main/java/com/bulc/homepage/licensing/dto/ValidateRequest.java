@@ -33,7 +33,10 @@ public record ValidateRequest(
 
         // 클라이언트 정보 (선택)
         String clientVersion,
-        String clientOs
+        String clientOs,
+
+        // v1.1.1: 기기 표시 이름 (선택) - UX용
+        String deviceDisplayName
 ) {
     /**
      * 제품 식별자가 유효한지 검증.

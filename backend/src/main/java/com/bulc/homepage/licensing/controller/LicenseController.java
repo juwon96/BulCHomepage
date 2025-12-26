@@ -65,7 +65,7 @@ public class LicenseController {
      *
      * 응답:
      * - 200 OK: 갱신 성공
-     * - 403 Forbidden: 갱신 실패 (만료, 정지 등)
+     * - 403 Forbidden: 갱신 실패 (만료, 정지, SESSION_DEACTIVATED 등)
      * - 409 Conflict: 복수 라이선스 선택 필요 (candidates 포함)
      */
     @PostMapping("/heartbeat")
@@ -76,14 +76,38 @@ public class LicenseController {
     }
 
     /**
+     * 강제 검증 및 활성화 (v1.1.1 신규).
+     * 동시 세션 제한 초과 시 기존 세션을 비활성화하고 새 세션을 활성화.
+     *
+     * POST /api/licenses/validate/force
+     *
+     * 요청 흐름:
+     * 1. /validate 호출 → 409 CONCURRENT_SESSION_LIMIT_EXCEEDED (activeSessions 포함)
+     * 2. 클라이언트가 비활성화할 세션 선택
+     * 3. /validate/force 호출 (deactivateActivationIds 포함)
+     *
+     * 응답:
+     * - 200 OK: 활성화 성공
+     * - 403 Forbidden: 검증 실패 (만료, 정지 등)
+     * - 409 Conflict: Race condition으로 여전히 동시 세션 초과 (재시도 필요)
+     */
+    @PostMapping("/validate/force")
+    public ResponseEntity<ValidationResponse> forceValidateByUser(@Valid @RequestBody ForceValidateRequest request) {
+        UUID userId = getCurrentUserId();
+        ValidationResponse response = licenseService.forceValidateByUser(userId, request);
+        return buildValidationResponse(response);
+    }
+
+    /**
      * ValidationResponse에 따른 HTTP 상태 코드 결정.
      */
     private ResponseEntity<ValidationResponse> buildValidationResponse(ValidationResponse response) {
         if (response.valid()) {
             return ResponseEntity.ok(response);
         }
-        // LICENSE_SELECTION_REQUIRED → 409 Conflict
-        if ("LICENSE_SELECTION_REQUIRED".equals(response.errorCode())) {
+        // LICENSE_SELECTION_REQUIRED, CONCURRENT_SESSION_LIMIT_EXCEEDED → 409 Conflict
+        if ("LICENSE_SELECTION_REQUIRED".equals(response.errorCode()) ||
+            "CONCURRENT_SESSION_LIMIT_EXCEEDED".equals(response.errorCode())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
         }
         // 기타 실패 → 403 Forbidden
