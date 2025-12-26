@@ -102,7 +102,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-fingerprint-123",
                     "1.0.0",
-                    "Windows 11"
+                    "Windows 11",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -135,7 +136,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -215,7 +217,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -230,16 +233,18 @@ class LicenseControllerTest {
 
         @Test
         @WithMockUser(username = TEST_USER_EMAIL)
-        @DisplayName("동시 세션 초과 시 403 Forbidden + CONCURRENT_SESSION_LIMIT_EXCEEDED 반환")
-        void shouldReturn403WhenConcurrentSessionLimitExceeded() throws Exception {
+        @DisplayName("동시 세션 초과 시 409 Conflict + CONCURRENT_SESSION_LIMIT_EXCEEDED 반환 (v1.1.1)")
+        void shouldReturn409WhenConcurrentSessionLimitExceeded() throws Exception {
             // given
             User mockUser = User.builder().email(TEST_USER_EMAIL).build();
             given(userRepository.findByEmail(TEST_USER_EMAIL)).willReturn(Optional.of(mockUser));
 
             UUID userIdAsUUID = UUID.nameUUIDFromBytes(TEST_USER_EMAIL.getBytes(StandardCharsets.UTF_8));
-            ValidationResponse response = ValidationResponse.failure(
-                    "CONCURRENT_SESSION_LIMIT_EXCEEDED",
-                    "최대 동시 세션 수를 초과했습니다"
+            // v1.1.1: 동시 세션 초과 시 activeSessions 목록과 함께 반환
+            ValidationResponse response = ValidationResponse.concurrentSessionLimitExceeded(
+                    LICENSE_ID,
+                    List.of(),  // 활성 세션 목록
+                    2           // maxConcurrentSessions
             );
             given(licenseService.validateAndActivateByUser(eq(userIdAsUUID), any(ValidateRequest.class)))
                     .willReturn(response);
@@ -250,7 +255,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -258,9 +264,10 @@ class LicenseControllerTest {
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden())
+                    .andExpect(status().isConflict())  // v1.1.1: 409 Conflict
                     .andExpect(jsonPath("$.valid").value(false))
-                    .andExpect(jsonPath("$.errorCode").value("CONCURRENT_SESSION_LIMIT_EXCEEDED"));
+                    .andExpect(jsonPath("$.errorCode").value("CONCURRENT_SESSION_LIMIT_EXCEEDED"))
+                    .andExpect(jsonPath("$.maxConcurrentSessions").value(2));
         }
 
         @Test
@@ -285,7 +292,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -320,7 +328,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -355,7 +364,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -404,7 +414,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows 11"
+                    "Windows 11",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -434,7 +445,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -464,7 +476,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             // when & then
@@ -645,7 +658,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             mockMvc.perform(post("/api/licenses/validate")
@@ -664,7 +678,8 @@ class LicenseControllerTest {
                     null,  // licenseId
                     "device-123",
                     "1.0.0",
-                    "Windows"
+                    "Windows",
+                    null   // deviceDisplayName
             );
 
             mockMvc.perform(post("/api/licenses/heartbeat")

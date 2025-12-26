@@ -39,7 +39,12 @@ public class LicenseException extends RuntimeException {
         // v1.1 추가
         ACCESS_DENIED("접근 권한이 없습니다"),
         LICENSE_NOT_FOUND_FOR_PRODUCT("해당 제품의 라이선스가 없습니다"),
-        LICENSE_SELECTION_REQUIRED("복수의 라이선스가 존재합니다. licenseId를 지정해주세요");
+        LICENSE_SELECTION_REQUIRED("복수의 라이선스가 존재합니다. licenseId를 지정해주세요"),
+
+        // v1.1.1 추가
+        SESSION_DEACTIVATED("세션이 다른 기기에서 비활성화되었습니다"),
+        INVALID_REQUEST("잘못된 요청입니다"),
+        INVALID_ACTIVATION_OWNERSHIP("비활성화 대상 세션이 해당 라이선스에 속하지 않습니다");
 
         private final String message;
 

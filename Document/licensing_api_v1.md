@@ -1,8 +1,25 @@
-# Licensing System API Documentation v1.1
+# Licensing System API Documentation v1.1.1
 
 ## 개요
 
 BulC Homepage 라이선스 시스템의 REST API 문서입니다.
+
+### 변경 이력
+
+| 버전 | 날짜 | 변경 내용 |
+|------|------|----------|
+| v1.1.1 | 2025-12-26 | 동시 세션 초과 처리(2-phase validate) 추가: validate 409 후보 반환 + validate/force로 기존 세션 비활성화 후 새 세션 활성화 |
+| v1.1 | 2025-12-18 | 계정 기반 API, 복수 라이선스 선택, JWS Offline Token |
+| v1.0 | 2025-12-05 | 최초 릴리즈 |
+
+### v1.1.1 변경사항 (2025-12-26)
+
+**동시 세션 관리 (Concurrent Session Handling):**
+- 동시 세션 초과 시 `CONCURRENT_SESSION_LIMIT_EXCEEDED` (409) + 활성 세션 후보 목록 반환
+- `/validate/force` 엔드포인트 추가: 기존 세션 비활성화 후 새 세션 활성화
+- `SESSION_DEACTIVATED` (403) 에러 코드 추가: 다른 기기에서 세션 활성화로 인한 현재 세션 종료
+- 세션 TTL 기반 활성 세션 판정 (`lastSeenAt` + `sessionTtlMinutes`)
+- `deviceDisplayName` 필드 추가 (UX용 기기 표시명)
 
 ### v1.1 변경사항 (2025-12-18)
 
@@ -61,9 +78,23 @@ BulC Homepage 라이선스 시스템의 REST API 문서입니다.
 Authorization: Bearer {jwt-token}
 ```
 
-### 1.1 라이선스 검증 및 활성화 (v1.1)
+### 1.1 라이선스 검증 및 활성화 (v1.1.1)
 
 인증된 사용자의 라이선스를 검증하고 기기를 활성화합니다.
+
+#### 활성 세션 판정 규칙 (v1.1.1)
+
+서버는 Activation의 `lastSeenAt`을 기준으로 "동시 활성 세션(active session)"을 판정합니다.
+
+**activeSession 조건:**
+- `activation.status == ACTIVE`
+- `activation.lastSeenAt >= now - sessionTtlMinutes`
+
+**설정:**
+- `sessionTtlMinutes`는 서버 설정 값이며, 권장값은 `heartbeatIntervalMinutes * 3`
+- 예: heartbeat 10분 주기면 TTL 30분
+
+> **Note:** TTL 내 heartbeat가 없으면 해당 세션은 active로 계산되지 않습니다(네트워크 장애/강제 종료 대비).
 
 ```http
 POST /api/licenses/validate
@@ -75,9 +106,11 @@ Content-Type: application/json
 ```json
 {
   "productCode": "BULC_EVAC",
+  "licenseId": "license-uuid",
   "deviceFingerprint": "hw-hash-abc123",
   "clientVersion": "1.0.0",
-  "clientOs": "Windows 11"
+  "clientOs": "Windows 11",
+  "deviceDisplayName": "DESKTOP-1234"
 }
 ```
 
@@ -85,10 +118,11 @@ Content-Type: application/json
 |-----|------|-----|------|
 | productCode | string | △ | 제품 코드 (예: "BULC_EVAC") - productId와 둘 중 하나 필수 |
 | productId | UUID | △ | 제품 ID - productCode와 둘 중 하나 필수 |
-| licenseId | UUID | X | 복수 라이선스 시 명시적 선택 |
+| licenseId | UUID | X(권장) | 복수 라이선스 시 명시적 선택 권장 |
 | deviceFingerprint | string | O | 기기 고유 식별 해시 |
 | clientVersion | string | X | 클라이언트 앱 버전 |
 | clientOs | string | X | 운영체제 정보 |
+| deviceDisplayName | string | X | 표시용 기기명 (v1.1.1, UX용, 서버 정책 판단에는 사용하지 않음) |
 
 **복수 라이선스 선택 로직:**
 - `licenseId` 지정: 해당 라이선스 사용 (소유자 검증)
@@ -148,12 +182,132 @@ Content-Type: application/json
 }
 ```
 
+**Response (409 Conflict - 동시 세션 초과, v1.1.1):**
+
+동시 세션 한도 초과 시, 서버는 "현재 활성 세션 후보 목록"을 반환합니다.
+클라이언트는 사용자에게 "기존 기기 비활성화 후 계속 / 취소" 선택 UX를 제공합니다.
+
+```json
+{
+  "valid": false,
+  "serverTime": "2025-12-26T02:15:00Z",
+  "errorCode": "CONCURRENT_SESSION_LIMIT_EXCEEDED",
+  "errorMessage": "동시 실행 가능한 세션 수를 초과했습니다.",
+  "licenseId": "550e8400-e29b-41d4-a716-446655440000",
+  "maxConcurrentSessions": 2,
+  "sessionTtlMinutes": 30,
+  "activeSessions": [
+    {
+      "activationId": "activation-uuid-1",
+      "deviceFingerprint": "device-hash-1",
+      "deviceDisplayName": "DESKTOP-1234",
+      "lastSeenAt": "2025-12-26T02:10:00Z"
+    },
+    {
+      "activationId": "activation-uuid-2",
+      "deviceFingerprint": "device-hash-2",
+      "deviceDisplayName": "LAPTOP-ABCD",
+      "lastSeenAt": "2025-12-26T02:12:00Z"
+    }
+  ],
+  "nextAction": "VALIDATE_FORCE_AVAILABLE"
+}
+```
+
+| 필드 | 타입 | 설명 |
+|-----|------|------|
+| maxConcurrentSessions | int | 최대 동시 세션 수 |
+| sessionTtlMinutes | int | 세션 TTL (분) |
+| activeSessions | array | 현재 활성 세션 목록 (UX용) |
+| nextAction | string | 다음 가능한 액션 (`VALIDATE_FORCE_AVAILABLE`) |
+
+> **Note:** `activeSessions`는 최대 `maxConcurrentSessions` 개만 반환합니다.
+> `deviceDisplayName`은 표시용이며 서버 정책 판단에는 사용하지 않습니다.
+
 > **Note:** `serverTime` 필드는 클라이언트 시간 조작 방어용입니다.
 > 클라이언트는 이 값을 기준으로 로컬 시간과 비교하여 시간 조작 여부를 감지할 수 있습니다.
 
 ---
 
-### 1.2 Heartbeat (v1.1)
+### 1.2 강제 검증 및 활성화 (v1.1.1 신규)
+
+사용자가 "기존 기기 세션 비활성화 후 계속"을 선택하면 호출합니다.
+
+```http
+POST /api/licenses/validate/force
+Authorization: Bearer {jwt-token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "productCode": "BULC_EVAC",
+  "licenseId": "license-uuid",
+  "deviceFingerprint": "new-device-hash",
+  "clientVersion": "1.0.0",
+  "clientOs": "Windows 11",
+  "deviceDisplayName": "NEW-DESKTOP",
+  "deactivateActivationIds": ["activation-uuid-1"]
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|-----|------|
+| productCode | string | △ | 제품 코드 |
+| productId | UUID | △ | 제품 ID |
+| licenseId | UUID | O | 선택된 라이선스 ID |
+| deviceFingerprint | string | O | 새로 활성화할 기기 |
+| deactivateActivationIds | UUID[] | O | 비활성화할 기존 세션(activation) 목록 |
+| clientVersion | string | X | 클라이언트 버전 |
+| clientOs | string | X | OS 정보 |
+| deviceDisplayName | string | X | 표시용 기기명 |
+
+#### 서버 동작 (원자적 처리)
+
+`/validate/force`는 트랜잭션으로 원자적으로 처리합니다:
+
+1. **(권한 검증)** `licenseId`가 요청자 소유/접근 가능한지 확인
+2. `deactivateActivationIds`가 해당 `licenseId`에 속하는지 확인
+3. 해당 activation들을 `status=DEACTIVATED`로 변경
+4. 새 기기에 대한 activation을 생성/갱신하고 `status=ACTIVE`로 설정
+5. 최종적으로 동시 세션 제한을 만족하는지 재검증 (경쟁 조건 대비)
+
+**Response (200 OK - 성공):**
+
+`/validate` 성공과 동일한 형식 반환:
+
+```json
+{
+  "valid": true,
+  "licenseId": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "ACTIVE",
+  "validUntil": "2025-12-31T23:59:59Z",
+  "entitlements": ["core-simulation", "export-csv"],
+  "offlineToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "offlineTokenExpiresAt": "2025-02-01T00:00:00Z",
+  "serverTime": "2025-12-26T02:15:30Z"
+}
+```
+
+**Error Responses:**
+
+| HTTP | 코드 | 설명 |
+|------|-----|------|
+| 403 | ACCESS_DENIED | 타인 라이선스 접근 |
+| 403 | LICENSE_SUSPENDED | 라이선스 정지됨 |
+| 403 | LICENSE_REVOKED | 라이선스 회수됨 |
+| 403 | LICENSE_EXPIRED | 라이선스 만료 |
+| 404 | LICENSE_NOT_FOUND | 라이선스 없음 |
+| 404 | ACTIVATION_NOT_FOUND | 요청한 activationId가 없음 |
+| 409 | CONCURRENT_SESSION_LIMIT_EXCEEDED | 경쟁 조건으로 여전히 초과 |
+| 400 | INVALID_REQUEST | deactivateActivationIds 비어있음 등 |
+
+---
+
+### 1.3 Heartbeat (v1.1.1)
+
+Heartbeat는 "현재 기기 세션 유지"이며, 새 Activation을 생성하지 않습니다.
 
 ```http
 POST /api/licenses/heartbeat
@@ -161,11 +315,42 @@ Authorization: Bearer {jwt-token}
 Content-Type: application/json
 ```
 
-**Request/Response:** `/validate`와 동일한 형식
+**Request Body:**
+```json
+{
+  "productCode": "BULC_EVAC",
+  "licenseId": "license-uuid",
+  "deviceFingerprint": "hw-hash-abc123",
+  "clientVersion": "1.0.0",
+  "clientOs": "Windows 11"
+}
+```
+
+**Heartbeat 응답 규칙:**
+- activation이 `ACTIVE`면 `lastSeenAt` 갱신 후 200 OK (기존 형식)
+- activation이 `DEACTIVATED`면 403 반환 (세션 종료됨)
+- activation이 없으면 404 반환
+
+**Response (200 OK - 성공):** `/validate` 성공과 동일한 형식
+
+**Response (403 Forbidden - 세션 비활성화됨, v1.1.1):**
+
+다른 기기에서 `/validate/force`로 세션이 비활성화된 경우:
+
+```json
+{
+  "valid": false,
+  "serverTime": "2025-12-26T02:20:00Z",
+  "errorCode": "SESSION_DEACTIVATED",
+  "errorMessage": "다른 기기에서 세션이 활성화되어 현재 세션이 종료되었습니다."
+}
+```
+
+> **클라이언트 동작:** 이 응답을 받으면 앱을 종료하거나, 사용자에게 "다른 기기에서 로그인하여 세션이 종료되었습니다" 메시지를 표시하고 재인증을 유도합니다.
 
 ---
 
-### 1.3 (Legacy) 라이선스 검증 및 활성화
+### 1.4 (Legacy) 라이선스 검증 및 활성화
 
 클라이언트 앱 실행 시 라이선스 유효성을 확인하고 기기를 활성화합니다.
 
@@ -720,11 +905,16 @@ PENDING → ACTIVE → EXPIRED_GRACE → EXPIRED_HARD
 | ACCESS_DENIED | 403 | 접근 권한 없음 (v1.1 - 타인 소유 라이선스 접근 시) |
 | ACTIVATION_NOT_FOUND | 404 | 활성화 정보 없음 |
 | ACTIVATION_LIMIT_EXCEEDED | 403 | 기기 수 초과 |
-| CONCURRENT_SESSION_LIMIT_EXCEEDED | 403 | 세션 수 초과 |
+| CONCURRENT_SESSION_LIMIT_EXCEEDED | 409 | 동시 세션 한도 초과 (v1.1.1 - 선택 UX 필요) |
+| SESSION_DEACTIVATED | 403 | force/deactivate로 세션이 종료됨 (v1.1.1) |
+| INVALID_REQUEST | 400 | 요청 형식 오류 (v1.1.1) |
 | INVALID_LICENSE_STATE | 400 | 잘못된 상태 |
 | PLAN_NOT_FOUND | 404 | 플랜 없음 |
 | PLAN_CODE_DUPLICATE | 409 | 플랜 코드 중복 |
 | PLAN_NOT_AVAILABLE | 400 | 사용 불가 플랜 |
+
+> **v1.1.1 변경:** `CONCURRENT_SESSION_LIMIT_EXCEEDED`가 403에서 **409**로 변경되었습니다.
+> 클라이언트가 "선택/조치"를 수행할 수 있는 상태이기 때문입니다.
 
 ---
 
@@ -818,6 +1008,96 @@ eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDA
 - 오프라인 기간(`allowOfflineDays`)이 지나면 반드시 온라인 재인증 필요
 - 토큰 유출 시 서버에서 즉시 무효화 가능 (온라인 복귀 시 차단)
 - 토큰당 1개 기기에만 바인딩
+
+---
+
+## 8. UX 플로우: 동시 세션 처리 (v1.1.1)
+
+### 동시 세션 초과 처리 플로우
+
+```
+1) 앱 시작 → POST /validate
+2) 200 OK → 실행
+3) 409 CONCURRENT_SESSION_LIMIT_EXCEEDED → activeSessions 표시
+4) 사용자가 선택:
+   - (A) 취소 → 실행 중단
+   - (B) 기존 기기 비활성화 후 계속 → POST /validate/force(deactivateActivationIds=...)
+5) 200 OK → 실행
+6) 비활성화된 기기는 다음 Heartbeat에서 403 SESSION_DEACTIVATED
+```
+
+### 시퀀스 다이어그램
+
+```
+┌──────────┐         ┌──────────┐         ┌──────────┐
+│ Client A │         │  Server  │         │ Client B │
+└────┬─────┘         └────┬─────┘         └────┬─────┘
+     │                    │                    │
+     │  POST /validate    │                    │
+     │───────────────────>│                    │
+     │                    │                    │
+     │  200 OK (session)  │                    │
+     │<───────────────────│                    │
+     │                    │                    │
+     │                    │    POST /validate  │
+     │                    │<───────────────────│
+     │                    │                    │
+     │                    │  409 Session Limit │
+     │                    │  (activeSessions)  │
+     │                    │───────────────────>│
+     │                    │                    │
+     │                    │  POST /validate/   │
+     │                    │  force (kick A)    │
+     │                    │<───────────────────│
+     │                    │                    │
+     │                    │  200 OK (session)  │
+     │                    │───────────────────>│
+     │                    │                    │
+     │  POST /heartbeat   │                    │
+     │───────────────────>│                    │
+     │                    │                    │
+     │ 403 SESSION_       │                    │
+     │ DEACTIVATED        │                    │
+     │<───────────────────│                    │
+     │                    │                    │
+     │  앱 종료/재인증 유도 │                    │
+     │                    │                    │
+```
+
+---
+
+## 9. 구현 주의사항 (v1.1.1)
+
+### 서버 구현
+
+1. **트랜잭션 처리**
+   - `/validate/force`는 반드시 license row lock(또는 동등한 동시성 제어) 하에서 처리
+   - 경쟁 조건(동시에 다른 기기가 force 실행) 대비
+
+2. **세션 TTL 관리**
+   - `sessionTtlMinutes`는 서버 설정으로 관리
+   - 권장: `heartbeatIntervalMinutes * 3` (예: heartbeat 10분이면 TTL 30분)
+
+3. **deviceDisplayName 처리**
+   - 표시용이며 서버 정책 판단에는 사용하지 않음
+   - `activeSessions`에 과도한 정보(IP/지역 등) 포함 금지 (기본값)
+
+4. **Heartbeat interval/TTL 응답**
+   - 응답에 `sessionTtlMinutes`를 내려줘도 좋음 (디버그/UX용)
+
+### 클라이언트 구현
+
+1. **409 응답 처리**
+   - `CONCURRENT_SESSION_LIMIT_EXCEEDED` 수신 시 `activeSessions` 목록 표시
+   - 사용자에게 "기존 기기 비활성화 후 계속 / 취소" 선택 UI 제공
+
+2. **403 SESSION_DEACTIVATED 처리**
+   - 앱 종료 또는 "다른 기기에서 로그인하여 세션이 종료되었습니다" 메시지 표시
+   - 재인증(다시 로그인) 유도
+
+3. **기기명 표시**
+   - `deviceDisplayName`이 없으면 `deviceFingerprint` 일부를 마스킹하여 표시
+   - 예: `DESKTOP-****`, `device-****-abc1`
 
 ---
 
@@ -1189,6 +1469,13 @@ backend/src/main/java/com/bulc/homepage/licensing/
 - [ ] 클라이언트 UI에서 라이선스 선택 화면 구현
 - [ ] `licenseId` 파라미터 전달 로직 구현
 
+### 동시 세션 관리 (v1.1.1)
+- [ ] `CONCURRENT_SESSION_LIMIT_EXCEEDED` (409) 응답 처리 구현
+- [ ] 활성 세션 목록 표시 UI 구현
+- [ ] `/validate/force` 호출 로직 구현 (기존 세션 비활성화)
+- [ ] `SESSION_DEACTIVATED` (403) 응답 처리 (앱 종료/재인증 유도)
+- [ ] `sessionTtlMinutes` 서버 설정 확인 (권장: heartbeat 주기 * 3)
+
 ### 로깅 및 모니터링
 - [ ] 검증 실패 로그 모니터링 (LICENSE_NOT_FOUND, ACCESS_DENIED 등)
 - [ ] 비정상 패턴 감지 (동일 fingerprint 다수 계정, 급격한 요청 증가)
@@ -1201,4 +1488,4 @@ backend/src/main/java/com/bulc/homepage/licensing/
 
 ---
 
-*Last Updated: 2025-12-18 (M1.5 보안 개선 - 계정 기반 API, 복수 라이선스 선택, JWS Offline Token)*
+*Last Updated: 2025-12-26 (v1.1.1 - 동시 세션 처리 2-Phase Validate, /validate/force 추가)*

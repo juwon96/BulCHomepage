@@ -221,6 +221,17 @@ public class License {
     }
 
     /**
+     * PolicySnapshot에서 sessionTtlMinutes 추출.
+     * v1.1.1: 세션 TTL (분) - 마지막 heartbeat 이후 이 시간이 지나면 비활성 세션으로 간주.
+     */
+    public int getSessionTtlMinutes() {
+        if (policySnapshot == null || !policySnapshot.containsKey("sessionTtlMinutes")) {
+            return 60; // 기본값 60분
+        }
+        return ((Number) policySnapshot.get("sessionTtlMinutes")).intValue();
+    }
+
+    /**
      * 새 기기 활성화 가능 여부 확인.
      */
     public boolean canActivate(String deviceFingerprint, Instant now) {
@@ -250,6 +261,14 @@ public class License {
      */
     public Activation addActivation(String deviceFingerprint, String clientVersion,
                                     String clientOs, String lastIp) {
+        return addActivation(deviceFingerprint, clientVersion, clientOs, lastIp, null);
+    }
+
+    /**
+     * 기기 활성화 추가 (deviceDisplayName 포함, v1.1.1).
+     */
+    public Activation addActivation(String deviceFingerprint, String clientVersion,
+                                    String clientOs, String lastIp, String deviceDisplayName) {
         // 기존 활성화가 있으면 갱신
         Activation existing = activations.stream()
                 .filter(a -> a.getDeviceFingerprint().equals(deviceFingerprint))
@@ -258,6 +277,9 @@ public class License {
 
         if (existing != null) {
             existing.reactivate(clientVersion, clientOs, lastIp);
+            if (deviceDisplayName != null) {
+                existing.updateHeartbeat(clientVersion, clientOs, lastIp, deviceDisplayName);
+            }
             return existing;
         }
 
@@ -268,6 +290,7 @@ public class License {
                 .clientVersion(clientVersion)
                 .clientOs(clientOs)
                 .lastIp(lastIp)
+                .deviceDisplayName(deviceDisplayName)
                 .build();
 
         this.activations.add(activation);

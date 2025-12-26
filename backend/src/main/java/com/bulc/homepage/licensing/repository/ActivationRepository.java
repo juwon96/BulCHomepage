@@ -66,4 +66,35 @@ public interface ActivationRepository extends JpaRepository<Activation, UUID> {
     @Modifying
     @Query("UPDATE Activation a SET a.offlineToken = null, a.offlineTokenExpiresAt = null, a.updatedAt = :now WHERE a.id = :activationId")
     int revokeOfflineToken(@Param("activationId") UUID activationId, @Param("now") Instant now);
+
+    // ==========================================
+    // v1.1.1 추가 메서드 - 동시 세션 관리
+    // ==========================================
+
+    /**
+     * 활성 세션 조회 (Session TTL 기반).
+     * 활성 세션 조건: status = ACTIVE AND lastSeenAt >= threshold
+     * @param licenseId 라이선스 ID
+     * @param threshold 세션 만료 기준 시간 (now - sessionTtlMinutes)
+     * @return 활성 세션 목록
+     */
+    @Query("SELECT a FROM Activation a WHERE a.license.id = :licenseId " +
+            "AND a.status = 'ACTIVE' AND a.lastSeenAt >= :threshold " +
+            "ORDER BY a.lastSeenAt DESC")
+    List<Activation> findActiveSessions(@Param("licenseId") UUID licenseId, @Param("threshold") Instant threshold);
+
+    /**
+     * 활성 세션 수 조회 (Session TTL 기반).
+     * @param licenseId 라이선스 ID
+     * @param threshold 세션 만료 기준 시간 (now - sessionTtlMinutes)
+     * @return 활성 세션 수
+     */
+    @Query("SELECT COUNT(a) FROM Activation a WHERE a.license.id = :licenseId " +
+            "AND a.status = 'ACTIVE' AND a.lastSeenAt >= :threshold")
+    long countActiveSessions(@Param("licenseId") UUID licenseId, @Param("threshold") Instant threshold);
+
+    /**
+     * 여러 활성화 ID로 조회 (force deactivate에서 사용).
+     */
+    List<Activation> findByIdIn(List<UUID> ids);
 }

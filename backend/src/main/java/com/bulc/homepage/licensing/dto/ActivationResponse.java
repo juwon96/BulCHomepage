@@ -20,7 +20,8 @@ public record ActivationResponse(
         String clientOs,
         String lastIp,
         boolean hasOfflineToken,
-        Instant offlineTokenExpiresAt
+        Instant offlineTokenExpiresAt,
+        String deviceDisplayName  // v1.1.1: 기기 표시 이름
 ) {
     public static ActivationResponse from(Activation activation) {
         return new ActivationResponse(
@@ -34,7 +35,8 @@ public record ActivationResponse(
                 activation.getClientOs(),
                 activation.getLastIp(),
                 activation.getOfflineToken() != null,
-                activation.getOfflineTokenExpiresAt()
+                activation.getOfflineTokenExpiresAt(),
+                activation.getDeviceDisplayName()
         );
     }
 }

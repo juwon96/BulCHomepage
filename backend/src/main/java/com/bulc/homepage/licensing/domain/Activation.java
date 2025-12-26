@@ -53,6 +53,16 @@ public class Activation {
     @Column(name = "last_ip", length = 45)  // IPv6 지원
     private String lastIp;
 
+    // === v1.1.1 추가 필드 ===
+    @Column(name = "device_display_name", length = 100)
+    private String deviceDisplayName;
+
+    @Column(name = "deactivated_at")
+    private Instant deactivatedAt;
+
+    @Column(name = "deactivated_reason", length = 50)
+    private String deactivatedReason;
+
     // === 오프라인 토큰 ===
     @Column(name = "offline_token", length = 2000)
     private String offlineToken;
@@ -70,7 +80,8 @@ public class Activation {
     // === 생성자 (Builder) ===
     @Builder
     private Activation(License license, String deviceFingerprint,
-                       String clientVersion, String clientOs, String lastIp) {
+                       String clientVersion, String clientOs, String lastIp,
+                       String deviceDisplayName) {
         this.license = license;
         this.deviceFingerprint = deviceFingerprint;
         this.status = ActivationStatus.ACTIVE;
@@ -79,6 +90,7 @@ public class Activation {
         this.clientVersion = clientVersion;
         this.clientOs = clientOs;
         this.lastIp = lastIp;
+        this.deviceDisplayName = deviceDisplayName;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -102,6 +114,16 @@ public class Activation {
     }
 
     /**
+     * Heartbeat 갱신 (deviceDisplayName 포함, v1.1.1).
+     */
+    public void updateHeartbeat(String clientVersion, String clientOs, String lastIp, String deviceDisplayName) {
+        updateHeartbeat(clientVersion, clientOs, lastIp);
+        if (deviceDisplayName != null) {
+            this.deviceDisplayName = deviceDisplayName;
+        }
+    }
+
+    /**
      * 재활성화 (기존 비활성화된 기기를 다시 활성화).
      */
     public void reactivate(String clientVersion, String clientOs, String lastIp) {
@@ -120,7 +142,17 @@ public class Activation {
      * 명시적 비활성화 (사용자/관리자에 의해).
      */
     public void deactivate() {
+        deactivate("USER_REQUEST");
+    }
+
+    /**
+     * 명시적 비활성화 (사유 지정, v1.1.1).
+     * @param reason 비활성화 사유 (예: "FORCE_VALIDATE", "USER_REQUEST", "ADMIN_ACTION")
+     */
+    public void deactivate(String reason) {
         this.status = ActivationStatus.DEACTIVATED;
+        this.deactivatedAt = Instant.now();
+        this.deactivatedReason = reason;
         this.updatedAt = Instant.now();
         // 오프라인 토큰도 무효화
         this.offlineToken = null;
