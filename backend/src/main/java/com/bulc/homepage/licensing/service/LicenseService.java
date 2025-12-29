@@ -3,6 +3,7 @@ package com.bulc.homepage.licensing.service;
 import com.bulc.homepage.entity.Product;
 import com.bulc.homepage.licensing.domain.*;
 import com.bulc.homepage.licensing.dto.*;
+import com.bulc.homepage.licensing.dto.ValidationResponse.ActiveSessionInfo;
 import com.bulc.homepage.licensing.dto.ValidationResponse.LicenseCandidate;
 import com.bulc.homepage.licensing.exception.LicenseException;
 import com.bulc.homepage.licensing.exception.LicenseException.ErrorCode;
@@ -425,7 +426,7 @@ public class LicenseService {
             }
 
             return performValidation(license, request.deviceFingerprint(),
-                    request.clientVersion(), request.clientOs(), null, true);
+                    request.clientVersion(), request.clientOs(), null, true, request.deviceDisplayName());
         }
 
         // licenseId 미지정: 후보 검색
@@ -447,7 +448,7 @@ public class LicenseService {
         // 후보 1개: 자동 선택
         if (candidates.size() == 1) {
             return performValidation(candidates.get(0), request.deviceFingerprint(),
-                    request.clientVersion(), request.clientOs(), null, true);
+                    request.clientVersion(), request.clientOs(), null, true, request.deviceDisplayName());
         }
 
         // 후보 2개 이상: LICENSE_SELECTION_REQUIRED (409) + candidates 반환
@@ -516,6 +517,121 @@ public class LicenseService {
         return ValidationResponse.selectionRequired(candidateList);
     }
 
+    // ==========================================
+    // v1.1.1 동시 세션 관리 메서드
+    // ==========================================
+
+    /**
+     * v1.1.1: 강제 검증 및 활성화.
+     *
+     * 동시 세션 제한 초과 시 클라이언트가 기존 세션을 비활성화하고 새 세션을 활성화.
+     * /validate에서 409 CONCURRENT_SESSION_LIMIT_EXCEEDED 응답을 받은 후 호출.
+     *
+     * 처리 순서:
+     * 1. 라이선스 락 획득 (FOR UPDATE)
+     * 2. 비활성화 대상 세션이 해당 라이선스 소유인지 검증
+     * 3. 대상 세션들 비활성화 (FORCE_VALIDATE 사유)
+     * 4. 새 세션 활성화
+     * 5. 동시 세션 수 재검증 (race condition 방지)
+     *
+     * @param userId 인증된 사용자 ID
+     * @param request 강제 검증 요청 (licenseId, deactivateActivationIds 포함)
+     */
+    @Transactional
+    public ValidationResponse forceValidateByUser(UUID userId, ForceValidateRequest request) {
+        // 비관적 락으로 라이선스 조회
+        License license = licenseRepository.findByIdWithLock(request.licenseId())
+                .orElseThrow(() -> new LicenseException(ErrorCode.LICENSE_NOT_FOUND));
+
+        // 소유자 검증
+        if (!license.isOwnedBy(userId)) {
+            throw new LicenseException(ErrorCode.ACCESS_DENIED);
+        }
+
+        Instant now = Instant.now();
+
+        // 비활성화 대상 세션 검증
+        List<Activation> toDeactivate = activationRepository.findByIdIn(request.deactivateActivationIds());
+
+        // 모든 대상 세션이 해당 라이선스 소유인지 확인
+        for (Activation activation : toDeactivate) {
+            if (!activation.getLicense().getId().equals(license.getId())) {
+                throw new LicenseException(ErrorCode.INVALID_ACTIVATION_OWNERSHIP,
+                        "비활성화 대상 세션 " + activation.getId() + "은(는) 해당 라이선스에 속하지 않습니다");
+            }
+        }
+
+        // 대상 세션들 비활성화
+        for (Activation activation : toDeactivate) {
+            if (activation.getStatus() == ActivationStatus.ACTIVE) {
+                activation.deactivate("FORCE_VALIDATE");
+            }
+        }
+        activationRepository.saveAll(toDeactivate);
+
+        // 세션 TTL 기반 활성 세션 재계산
+        int sessionTtlMinutes = license.getSessionTtlMinutes();
+        Instant sessionThreshold = now.minusSeconds(sessionTtlMinutes * 60L);
+
+        // 동시 세션 수 재검증
+        long remainingActiveCount = activationRepository.countActiveSessions(license.getId(), sessionThreshold);
+
+        // 본인이 이미 활성 세션이 있는 경우 제외
+        boolean hasSelfActiveSession = license.getActivations().stream()
+                .anyMatch(a -> a.getDeviceFingerprint().equals(request.deviceFingerprint())
+                        && a.getStatus() == ActivationStatus.ACTIVE
+                        && !a.getLastSeenAt().isBefore(sessionThreshold));
+
+        if (!hasSelfActiveSession && remainingActiveCount >= license.getMaxConcurrentSessions()) {
+            // Race condition 발생: 다른 기기가 먼저 활성화됨
+            List<Activation> activeSessions = activationRepository.findActiveSessions(
+                    license.getId(), sessionThreshold);
+            List<ActiveSessionInfo> sessionInfoList = activeSessions.stream()
+                    .map(a -> new ActiveSessionInfo(
+                            a.getId(),
+                            a.getDeviceDisplayName(),
+                            maskFingerprint(a.getDeviceFingerprint()),
+                            a.getLastSeenAt(),
+                            a.getClientOs(),
+                            a.getClientVersion()
+                    ))
+                    .collect(Collectors.toList());
+
+            return ValidationResponse.concurrentSessionLimitExceeded(
+                    license.getId(), sessionInfoList, license.getMaxConcurrentSessions());
+        }
+
+        // 새 세션 활성화
+        Activation newActivation = license.addActivation(
+                request.deviceFingerprint(),
+                request.clientVersion(),
+                request.clientOs(),
+                null,
+                request.deviceDisplayName()
+        );
+
+        // 오프라인 토큰 발급
+        if (!newActivation.hasValidOfflineToken(now)) {
+            int offlineDays = getOfflineTokenValidDays(license);
+            String offlineToken = generateOfflineToken(license, newActivation);
+            newActivation.issueOfflineToken(offlineToken, now.plusSeconds(offlineDays * 24L * 60 * 60));
+        }
+
+        licenseRepository.save(license);
+
+        LicenseStatus effectiveStatus = license.calculateEffectiveStatus(now);
+        List<String> entitlements = extractEntitlements(license);
+
+        return ValidationResponse.success(
+                license.getId(),
+                effectiveStatus,
+                license.getValidUntil(),
+                entitlements,
+                newActivation.getOfflineToken(),
+                newActivation.getOfflineTokenExpiresAt()
+        );
+    }
+
     /**
      * 기기 비활성화 (소유자 검증 포함).
      * v1.1에서 추가됨 - 본인 소유 라이선스만 비활성화 가능.
@@ -558,6 +674,16 @@ public class LicenseService {
     private ValidationResponse performValidation(License license, String deviceFingerprint,
                                                   String clientVersion, String clientOs, String clientIp,
                                                   boolean allowNewActivation) {
+        return performValidation(license, deviceFingerprint, clientVersion, clientOs, clientIp,
+                                 allowNewActivation, null);
+    }
+
+    /**
+     * 검증 로직 공통 메서드 (v1.1.1 deviceDisplayName 지원).
+     */
+    private ValidationResponse performValidation(License license, String deviceFingerprint,
+                                                  String clientVersion, String clientOs, String clientIp,
+                                                  boolean allowNewActivation, String deviceDisplayName) {
         Instant now = Instant.now();
         LicenseStatus effectiveStatus = license.calculateEffectiveStatus(now);
 
@@ -590,35 +716,78 @@ public class LicenseService {
             // ACTIVE, EXPIRED_GRACE는 계속 진행
         }
 
-        // 기존 활성화 확인
-        boolean hasExistingActivation = license.getActivations().stream()
-                .anyMatch(a -> a.getDeviceFingerprint().equals(deviceFingerprint)
-                        && a.getStatus() == ActivationStatus.ACTIVE);
+        // v1.1.1: 세션 TTL 기반 활성 세션 계산
+        int sessionTtlMinutes = license.getSessionTtlMinutes();
+        Instant sessionThreshold = now.minusSeconds(sessionTtlMinutes * 60L);
 
-        // Heartbeat 모드에서 기존 활성화 없으면 에러 (404 반환)
-        if (!allowNewActivation && !hasExistingActivation) {
-            throw new LicenseException(ErrorCode.ACTIVATION_NOT_FOUND);
+        // 기존 활성화 확인 (TTL 내에서 active인 것만)
+        Optional<Activation> existingActivation = license.getActivations().stream()
+                .filter(a -> a.getDeviceFingerprint().equals(deviceFingerprint)
+                        && a.getStatus() == ActivationStatus.ACTIVE
+                        && !a.getLastSeenAt().isBefore(sessionThreshold))
+                .findFirst();
+
+        // v1.1.1: Heartbeat 모드에서 기존 활성화가 비활성화되었는지 확인
+        if (!allowNewActivation) {
+            Optional<Activation> anyExisting = license.getActivations().stream()
+                    .filter(a -> a.getDeviceFingerprint().equals(deviceFingerprint))
+                    .findFirst();
+
+            if (anyExisting.isEmpty()) {
+                throw new LicenseException(ErrorCode.ACTIVATION_NOT_FOUND);
+            }
+
+            Activation activation = anyExisting.get();
+            // 비활성화되었거나 만료된 상태 (다른 기기에서 force로 비활성화됨)
+            if (activation.getStatus() == ActivationStatus.DEACTIVATED ||
+                activation.getStatus() == ActivationStatus.EXPIRED) {
+                throw new LicenseException(ErrorCode.SESSION_DEACTIVATED);
+            }
+
+            // TTL이 지났는데 ACTIVE인 경우 (클라이언트가 오래 중단되었다가 복귀)
+            // 이 경우는 heartbeat을 허용하여 세션을 갱신
         }
 
-        // 활성화 가능 여부 확인
+        // v1.1.1: 동시 세션 수 확인 (TTL 기반)
+        List<Activation> activeSessions = activationRepository.findActiveSessions(
+                license.getId(), sessionThreshold);
+
+        // 본인 세션은 제외하고 카운트 (재접속 시)
+        long otherActiveSessionCount = activeSessions.stream()
+                .filter(a -> !a.getDeviceFingerprint().equals(deviceFingerprint))
+                .count();
+
+        int maxConcurrentSessions = license.getMaxConcurrentSessions();
+
+        // 새 활성화 요청인데 이미 동시 세션 제한에 도달한 경우
+        if (existingActivation.isEmpty() && otherActiveSessionCount >= maxConcurrentSessions) {
+            // 409 CONCURRENT_SESSION_LIMIT_EXCEEDED + 활성 세션 목록 반환
+            List<ActiveSessionInfo> sessionInfoList = activeSessions.stream()
+                    .map(a -> new ActiveSessionInfo(
+                            a.getId(),
+                            a.getDeviceDisplayName(),
+                            maskFingerprint(a.getDeviceFingerprint()),
+                            a.getLastSeenAt(),
+                            a.getClientOs(),
+                            a.getClientVersion()
+                    ))
+                    .collect(Collectors.toList());
+
+            return ValidationResponse.concurrentSessionLimitExceeded(
+                    license.getId(), sessionInfoList, maxConcurrentSessions);
+        }
+
+        // 총 기기 활성화 수 확인 (ACTIVE + STALE 상태)
         if (!license.canActivate(deviceFingerprint, now)) {
-            long activeCount = activationRepository.countByLicenseIdAndStatus(
-                    license.getId(), ActivationStatus.ACTIVE
-            );
-            if (activeCount >= license.getMaxConcurrentSessions()) {
-                return ValidationResponse.failure(
-                        ErrorCode.CONCURRENT_SESSION_LIMIT_EXCEEDED.name(),
-                        ErrorCode.CONCURRENT_SESSION_LIMIT_EXCEEDED.getMessage()
-                );
-            }
             return ValidationResponse.failure(
                     ErrorCode.ACTIVATION_LIMIT_EXCEEDED.name(),
                     ErrorCode.ACTIVATION_LIMIT_EXCEEDED.getMessage()
             );
         }
 
-        // 활성화 추가/갱신
-        Activation activation = license.addActivation(deviceFingerprint, clientVersion, clientOs, clientIp);
+        // 활성화 추가/갱신 (deviceDisplayName 포함)
+        Activation activation = license.addActivation(deviceFingerprint, clientVersion,
+                                                       clientOs, clientIp, deviceDisplayName);
 
         // 오프라인 토큰 발급 (필요시)
         if (!activation.hasValidOfflineToken(now)) {
@@ -639,6 +808,16 @@ public class LicenseService {
                 activation.getOfflineToken(),
                 activation.getOfflineTokenExpiresAt()
         );
+    }
+
+    /**
+     * v1.1.1: 기기 fingerprint 마스킹 (보안).
+     */
+    private String maskFingerprint(String fingerprint) {
+        if (fingerprint == null || fingerprint.length() <= 8) {
+            return "****";
+        }
+        return fingerprint.substring(0, 4) + "****" + fingerprint.substring(fingerprint.length() - 4);
     }
 
     // ==========================================
@@ -791,6 +970,7 @@ public class LicenseService {
         return Map.of(
                 "maxActivations", 3,
                 "maxConcurrentSessions", 2,
+                "sessionTtlMinutes", 60,  // v1.1.1: 세션 TTL (분)
                 "gracePeriodDays", 7,
                 "allowOfflineDays", 30,
                 "entitlements", List.of("core-simulation")
