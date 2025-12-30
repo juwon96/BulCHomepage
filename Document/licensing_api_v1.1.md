@@ -1,4 +1,4 @@
-# Licensing System API Documentation v1.1
+# Licensing System API Documentation v1.1.2
 
 ## 변경 이력
 
@@ -6,6 +6,14 @@
 |-----|------|----------|
 | v1.0 | 2025-12-08 | 최초 작성 (M1, M2 구현) |
 | v1.1 | 2025-12-17 | M1.5 보안 개선 - 계정 기반 인증으로 전환 |
+| v1.1.2 | 2025-12-30 | sessionToken (RS256 JWS) 추가 - CLI 위/변조 방어 |
+
+### v1.1.2 주요 변경사항
+
+1. **sessionToken 필드 추가**: validate/heartbeat 응답에 RS256 서명된 JWS 토큰 포함
+2. **클라이언트 검증 강화**: sessionToken 서명 검증 필수 (CLI 바꿔치기/session.json 조작 방어)
+3. **기기 바인딩**: deviceFingerprint가 토큰에 포함되어 다른 기기 복사 방지
+4. **짧은 TTL**: 기본 15분 만료로 재사용 공격 제한
 
 ### v1.1 주요 변경사항
 
@@ -152,8 +160,10 @@ Content-Type: application/json
   "status": "ACTIVE",
   "validUntil": "2025-12-31T23:59:59Z",
   "entitlements": ["core-simulation", "export-csv"],
+  "sessionToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJidWxjLWxpY2Vuc2Utc2VydmVyIiwiYXVkIjoiQlVMQ19FVkFDIiwic3ViIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiZGZwIjoiaHctaGFzaC1hYmMxMjMiLCJlbnQiOlsiY29yZS1zaW11bGF0aW9uIiwiZXhwb3J0LWNzdiJdLCJpYXQiOjE3MzUyMDAwMDAsImV4cCI6MTczNTIwMDkwMH0.signature",
   "offlineToken": "abc123-opaque-token-xyz789",
-  "offlineTokenExpiresAt": "2025-02-01T00:00:00Z"
+  "offlineTokenExpiresAt": "2025-02-01T00:00:00Z",
+  "serverTime": "2025-12-30T05:00:00Z"
 }
 ```
 
@@ -954,6 +964,102 @@ curl -X POST http://localhost:8080/api/admin/license-plans \
 
 ---
 
+## Appendix A: sessionToken (JWS) 스펙 (v1.1.2)
+
+### 개요
+
+v1.1.2에서 추가된 sessionToken은 **RS256 서명된 JWS** 형식의 토큰입니다.
+CLI 바꿔치기, session.json 조작 등의 공격을 방어하기 위해 도입되었습니다.
+
+### 형식
+
+- **Compact JWS** (JWT 형태)
+- **알고리즘**: RS256 (RSA-SHA256) 전용
+  - 서버 개인키로 서명
+  - 클라이언트는 내장 공개키로 검증
+
+### 필수 클레임 (Claims)
+
+| Claim | 타입 | 필수 | 의미 |
+|-------|------|------|------|
+| `iss` | string | O | 토큰 발급자 (bulc-license-server) |
+| `aud` | string | O | 제품 코드 (예: BULC_EVAC) |
+| `sub` | string | O | licenseId |
+| `dfp` | string | O | deviceFingerprint (기기 바인딩) |
+| `ent` | string[] | O | entitlements 배열 |
+| `iat` | number | O | issued at (epoch seconds) |
+| `exp` | number | O | expiry (epoch seconds) |
+
+### 만료 정책
+
+- **온라인 세션 토큰**: 10~15분 (기본 15분)
+- **갱신 방법**: 앱은 exp 만료 전에 heartbeat로 갱신
+
+### 클라이언트 검증 규칙 (필수)
+
+앱/CLI는 `session.json`을 읽은 뒤 **아래를 모두 검증**해야 함:
+
+```
+1. RS256 서명 검증 성공 (내장 공개키)
+2. aud == productCode
+3. dfp == 현재 기기 fingerprint
+4. exp > now (유효, ±2분 clock skew 허용)
+5. entitlements 기반 기능 unlock
+```
+
+> **중요**: `"valid": true` 같은 필드는 **참고로만** 사용 가능.
+> **최종 unlock은 sessionToken 검증을 통과해야 한다.**
+
+### 방어되는 공격
+
+| 공격 | 방어 메커니즘 |
+|------|--------------|
+| CLI 바꿔치기 | 서버 개인키 없이 유효한 sessionToken 생성 불가 |
+| session.json 조작 | 파일 수정 시 서명 검증 실패 |
+| stdout 응답 조작 | 서버 서명 없는 응답 거부 |
+| 다른 PC 세션 복사 | dfp (deviceFingerprint) 불일치로 거부 |
+
+### 예시 토큰 (디코딩)
+
+**Header:**
+```json
+{
+  "alg": "RS256",
+  "typ": "JWT"
+}
+```
+
+**Payload:**
+```json
+{
+  "iss": "bulc-license-server",
+  "aud": "BULC_EVAC",
+  "sub": "550e8400-e29b-41d4-a716-446655440000",
+  "dfp": "hw-hash-abc123",
+  "ent": ["core-simulation", "export-csv"],
+  "iat": 1735200000,
+  "exp": 1735200900
+}
+```
+
+**Signature:**
+```
+RS256 서명 (서버 개인키)
+```
+
+### 설정 (Backend)
+
+```yaml
+bulc:
+  licensing:
+    session-token:
+      ttl-minutes: 15  # sessionToken 만료 시간
+      issuer: bulc-license-server
+      private-key: ${SESSION_TOKEN_PRIVATE_KEY:}  # RS256 개인키 (Base64 PKCS#8)
+```
+
+---
+
 ## Appendix B: 구현 현황
 
 ### M1 - 도메인 레이어 (완료)
@@ -967,6 +1073,12 @@ curl -X POST http://localhost:8080/api/admin/license-plans \
 - [x] validate/heartbeat Bearer token 인증 적용
 - [x] `/api/licenses/key/*` 공개 접근 제거
 - [x] Security 설정 변경
+
+### M1.6 - sessionToken 추가 (v1.1.2 완료)
+- [x] SessionTokenService 구현 (RS256 JWS)
+- [x] ValidationResponse에 sessionToken 필드 추가
+- [x] validate/heartbeat/force-validate에서 sessionToken 발급
+- [x] CLI 위/변조 방어 설계 문서화
 
 > **Note:** Claim 기능은 추후 Redeem 기능으로 별도 구현 예정
 
@@ -1000,7 +1112,7 @@ backend/src/main/java/com/bulc/homepage/licensing/
 │   └── ActivationStatus.java         # 활성화 상태 Enum
 ├── dto/
 │   ├── ActivationRequest.java        # 검증 요청 DTO
-│   ├── ValidationResponse.java       # 검증 응답 DTO
+│   ├── ValidationResponse.java       # 검증 응답 DTO (v1.1.2: sessionToken 추가)
 │   ├── ValidateRequest.java          # v1.1 검증 요청 DTO
 │   └── ApiResponse.java              # 공통 응답 DTO
 ├── exception/
@@ -1020,9 +1132,10 @@ backend/src/main/java/com/bulc/homepage/licensing/
 ├── repository/
 │   └── LicenseRepository.java        # JPA Repository
 └── service/
-    └── LicenseService.java           # Command Service
+    ├── LicenseService.java           # Command Service
+    └── SessionTokenService.java      # v1.1.2: sessionToken (JWS) 발급 서비스
 ```
 
 ---
 
-*Last Updated: 2025-12-17 (M1.5 API 보안 개선 문서화)*
+*Last Updated: 2025-12-30 (v1.1.2 sessionToken 추가 - CLI 위/변조 방어)*
